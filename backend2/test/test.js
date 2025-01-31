@@ -44,7 +44,7 @@ async function main() {
 
     await hacktoken.connect(user1).approve(hackpot.target, 1000);
     await hackpot.connect(user1).betTokens(1000)
-    await new Promise(resolve => setTimeout(resolve, 7000));
+    await new Promise(resolve => setTimeout(resolve, 65000));
 
     console.log("Bahis sonrası owner bakiye:   ", await hacktoken.balanceOf(owner.address));
     console.log("Bahis sonrası user1 bakiye:   ", await hacktoken.balanceOf(user1.address));
