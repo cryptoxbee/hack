@@ -19,6 +19,7 @@ contract Hackpot {
     bool public isPlaying;
     bool public isBetting;
     uint256 public betSFinishTime;
+    event betPlaced(address player, uint256 amount);
 
     constructor(address afeeSetter,address arandomNumber,address tokenAddress) {
         feeSetter = afeeSetter;
@@ -45,34 +46,44 @@ contract Hackpot {
         owner = aowner;
     }
 
-    function selectWinner() public onlyOwner pauseWhilePlaying {
+    function selectWinner() public onlyOwner pauseWhilePlaying returns (address) {
         require(block.timestamp >= betSFinishTime, "Betting time is not over");
         isPlaying = true;
         uint256 startPoint = 0;
-        uint256 randomNumber = randomNumberAddress.generateRandomInRange(0, totalBets);
+        uint256 randomNumber = randomNumber(randomNumberAddress).generateRandomInRange(0, totalBets);
         for (uint256 i = 0; i < players.length; i++) {
+            //kazananın alanına girdiyse:
             if (startPoint + bets[players[i]] >= randomNumber) {
+                //kazananın alanına token gönderiliyor
                 ERC20(tokenAddress).transfer(players[i], totalBets);
+                //totalBets sıfırlanıyor
                 totalBets = 0;
+                return players[i];
+
+                //mapping sıfırlanıyor
+                for(uint256 j = 0; j < players.length; j++) {
+                    delete bets[players[j]];
+                }
+                //array sıfırlanıyor
                 players = new address[](0);
-                bets = new mapping(address => uint256)(0);
                 break;
             }
+            //playerın şansı kontrol ediliyor
             startPoint += bets[players[i]];
         }
         isPlaying = false;
     }
 
-    function betTokens(uint256 amount) public  {
+    function betTokens(uint256 amount) public pauseWhilePlaying {
         if(isBetting == false) {
             isBetting = true;
             betSFinishTime = block.timestamp+60;
         }
         ERC20(tokenAddress).transfer(address(this), amount);
-        players.push(msg.sender);//sıfırlama okey
-        bets[msg.sender] += amount;//sıfırlama okey
-        totalBets += amount;//sıfırlama okey
-        emit BetPlaced(msg.sender, amount);
+        players.push(msg.sender);
+        bets[msg.sender] += amount;
+        totalBets += amount;
+        emit betPlaced(msg.sender, amount);
     }
     
 }   
