@@ -57,6 +57,7 @@ async function main() {
     //owner bakiyesini alıyoruz
     console.log("oyun sonrası owner bakiye:   ", await hacktoken.balanceOf(owner.address));
     console.log("oyun sonrası user1 bakiyesi:   ", await hacktoken.balanceOf(user1.address));
+    console.log("oyun sonrası feeSetter bakiyesi:   ", await hackpotFeeSetter.showBalance());
 }
 
 main().catch((error) => {

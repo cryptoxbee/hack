@@ -60,7 +60,8 @@ contract Hackpot {
             //kazananın alanına girdiyse:
             if (startPoint + bets[players[i]] >= randomNumber1) {
                 //kazanana token gönderiliyor
-                ERC20(tokenAddress).transfer(players[i], totalBets);
+                ERC20(tokenAddress).transfer(feeSetter, totalBets/100);
+                ERC20(tokenAddress).transfer(players[i], (totalBets*99)/100);
                 //totalBets sıfırlanıyor
                 totalBets = 0;
                 winner = players[i];
