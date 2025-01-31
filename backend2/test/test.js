@@ -26,9 +26,17 @@ async function main() {
     await hackpot.waitForDeployment();
     console.log("Hackpot deployed to:", hackpot.target);
 
-    await hackpot.betTokens(100);
+    const approveAmount = ethers.parseEther("100");
+    await hacktoken.approve(hackpot.target, approveAmount);
 
-    console.log(await hackpot.selectWinner());
+    console.log(await hacktoken.balanceOf(owner.address));
+
+    await hackpot.betTokens(100);
+    console.log(await hacktoken.balanceOf(owner.address));
+    await new Promise(resolve => setTimeout(resolve, 15000));
+    await hackpot.selectWinner()
+    console.log(await hackpot.winner());
+    console.log(await hacktoken.balanceOf(owner.address));
 }
 
 main().catch((error) => {

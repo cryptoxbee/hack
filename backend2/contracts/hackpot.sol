@@ -6,6 +6,7 @@ interface randomNumber {
 }
 interface ERC20 {
     function transfer(address to, uint256 value) external returns (bool);
+    function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
 contract Hackpot {
@@ -16,16 +17,17 @@ contract Hackpot {
     mapping(address => uint256) public bets;
     address[] public players;
     address public tokenAddress;
-    bool public isPlaying;
-    bool public isBetting;
+    bool public isPlaying=false;
+    bool public isBetting=false;
     uint256 public betSFinishTime;
+    address public winner;
     event betPlaced(address player, uint256 amount);
 
-    constructor(address afeeSetter,address arandomNumber,address tokenAddress) {
+    constructor(address afeeSetter, address arandomNumber, address atokenAddress) {
         feeSetter = afeeSetter;
         owner = msg.sender;
         randomNumberAddress = arandomNumber;
-        tokenAddress = tokenAddress;
+        tokenAddress = atokenAddress;
     }
 
     modifier pauseWhilePlaying() {
@@ -58,7 +60,8 @@ contract Hackpot {
                 ERC20(tokenAddress).transfer(players[i], totalBets);
                 //totalBets sıfırlanıyor
                 totalBets = 0;
-                return players[i];
+                winner = players[i];
+                return winner;
 
                 //mapping sıfırlanıyor
                 for(uint256 j = 0; j < players.length; j++) {
@@ -77,9 +80,9 @@ contract Hackpot {
     function betTokens(uint256 amount) public pauseWhilePlaying {
         if(isBetting == false) {
             isBetting = true;
-            betSFinishTime = block.timestamp+60;
+            betSFinishTime = block.timestamp+5;
         }
-        ERC20(tokenAddress).transfer(address(this), amount);
+        require(ERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
         players.push(msg.sender);
         bets[msg.sender] += amount;
         totalBets += amount;
