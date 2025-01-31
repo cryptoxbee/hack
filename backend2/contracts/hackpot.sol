@@ -21,6 +21,7 @@ contract Hackpot {
     bool public isBetting=false;
     uint256 public betSFinishTime;
     address public winner;
+    uint256 public randomNumber1;
     event betPlaced(address player, uint256 amount);
 
     constructor(address afeeSetter, address arandomNumber, address atokenAddress) {
@@ -49,19 +50,20 @@ contract Hackpot {
     }
 
     function selectWinner() public onlyOwner pauseWhilePlaying returns (address) {
+        //bahis bitim zamanı kontrol ediliyor
         require(block.timestamp >= betSFinishTime, "Betting time is not over");
         isPlaying = true;
         uint256 startPoint = 0;
-        uint256 randomNumber = randomNumber(randomNumberAddress).generateRandomInRange(0, totalBets);
+        //random sayı üretiliyor
+        randomNumber1 = randomNumber(randomNumberAddress).generateRandomInRange(0, totalBets);
         for (uint256 i = 0; i < players.length; i++) {
             //kazananın alanına girdiyse:
-            if (startPoint + bets[players[i]] >= randomNumber) {
-                //kazananın alanına token gönderiliyor
+            if (startPoint + bets[players[i]] >= randomNumber1) {
+                //kazanana token gönderiliyor
                 ERC20(tokenAddress).transfer(players[i], totalBets);
                 //totalBets sıfırlanıyor
                 totalBets = 0;
                 winner = players[i];
-                return winner;
 
                 //mapping sıfırlanıyor
                 for(uint256 j = 0; j < players.length; j++) {

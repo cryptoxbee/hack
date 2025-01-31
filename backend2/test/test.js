@@ -11,6 +11,7 @@ async function main() {
     await hacktoken.waitForDeployment();
     console.log("HackToken deployed to:", hacktoken.target);
 
+
     const getHackpotFeeSetter = await ethers.getContractFactory("HackpotFeeSetter");
     const hackpotFeeSetter = await getHackpotFeeSetter.deploy(hacktoken.target);
     await hackpotFeeSetter.waitForDeployment();
@@ -26,17 +27,36 @@ async function main() {
     await hackpot.waitForDeployment();
     console.log("Hackpot deployed to:", hackpot.target);
 
-    const approveAmount = ethers.parseEther("100");
+
+    await hacktoken.mint(user1.address, ethers.parseEther("1000"));
+
+
+    const approveAmount = ethers.parseEther("1000");
     await hacktoken.approve(hackpot.target, approveAmount);
 
-    console.log(await hacktoken.balanceOf(owner.address));
 
-    await hackpot.betTokens(100);
-    console.log(await hacktoken.balanceOf(owner.address));
-    await new Promise(resolve => setTimeout(resolve, 15000));
+    ;
+
+    console.log("Bahis öncesi owner bakiye:   ", await hacktoken.balanceOf(owner.address));
+    console.log("Bahis öncesi user1 bakiye:   ", await hacktoken.balanceOf(user1.address));
+
+    await hackpot.betTokens(1000);
+
+    await hacktoken.connect(user1).approve(hackpot.target, 1000);
+    await hackpot.connect(user1).betTokens(1000)
+    await new Promise(resolve => setTimeout(resolve, 7000));
+
+    console.log("Bahis sonrası owner bakiye:   ", await hacktoken.balanceOf(owner.address));
+    console.log("Bahis sonrası user1 bakiye:   ", await hacktoken.balanceOf(user1.address));
+
     await hackpot.selectWinner()
-    console.log(await hackpot.winner());
-    console.log(await hacktoken.balanceOf(owner.address));
+    //random sayıyı alıyoruz
+    console.log("randomNumber:  ", await hackpot.randomNumber1());
+    //kazananı alıyoruz
+    console.log("Kazanan:  ", await hackpot.winner());
+    //owner bakiyesini alıyoruz
+    console.log("oyun sonrası owner bakiye:   ", await hacktoken.balanceOf(owner.address));
+    console.log("oyun sonrası user1 bakiyesi:   ", await hacktoken.balanceOf(user1.address));
 }
 
 main().catch((error) => {
