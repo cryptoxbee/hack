@@ -10,6 +10,7 @@ async function main() {
     const hacktoken = await getHacktoken.deploy();
     await hacktoken.waitForDeployment();
     console.log("HackToken deployed to:", hacktoken.target);
+    console.log("owner:", owner.address);
 
 
     const getHackpotFeeSetter = await ethers.getContractFactory("HackpotFeeSetter");
@@ -28,33 +29,27 @@ async function main() {
     console.log("Hackpot deployed to:", hackpot.target);
 
 
+    await hacktoken.mint(owner.address, ethers.parseEther("1000"));
     await hacktoken.mint(user1.address, ethers.parseEther("1000"));
 
 
-    const approveAmount = ethers.parseEther("1000");
-    await hacktoken.approve(hackpot.target, approveAmount);
+    await hacktoken.approve(hackpot.target, ethers.parseEther("1000"));
+    await hacktoken.connect(user1).approve(hackpot.target, ethers.parseEther("1000"));
 
-
-    ;
 
     console.log("Bahis öncesi owner bakiye:   ", await hacktoken.balanceOf(owner.address));
     console.log("Bahis öncesi user1 bakiye:   ", await hacktoken.balanceOf(user1.address));
 
-    await hackpot.betTokens(1000);
-
-    await hacktoken.connect(user1).approve(hackpot.target, 1000);
-    await hackpot.connect(user1).betTokens(1000)
+    await hackpot.betTokens(ethers.parseEther("100"));
+    await hackpot.connect(user1).betTokens(ethers.parseEther("100"));
     await new Promise(resolve => setTimeout(resolve, 65000));
 
     console.log("Bahis sonrası owner bakiye:   ", await hacktoken.balanceOf(owner.address));
     console.log("Bahis sonrası user1 bakiye:   ", await hacktoken.balanceOf(user1.address));
 
-    await hackpot.selectWinner()
-    //random sayıyı alıyoruz
+    await hackpot.selectWinner();
     console.log("randomNumber:  ", await hackpot.randomNumber1());
-    //kazananı alıyoruz
     console.log("Kazanan:  ", await hackpot.winner());
-    //owner bakiyesini alıyoruz
     console.log("oyun sonrası owner bakiye:   ", await hacktoken.balanceOf(owner.address));
     console.log("oyun sonrası user1 bakiyesi:   ", await hacktoken.balanceOf(user1.address));
     console.log("oyun sonrası feeSetter bakiyesi:   ", await hackpotFeeSetter.showBalance());
