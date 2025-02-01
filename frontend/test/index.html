@@ -1070,14 +1070,15 @@
 
         .wheel-pointer {
             position: absolute;
-            top: -30px;
+            top: -20px;
             left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 40px;
+            transform: translateX(-50%) rotate(180deg);
+            width: 30px;
+            height: 30px;
             background: #ff6b6b;
             clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
             z-index: 2;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
 
         .jackpot-wheel {
