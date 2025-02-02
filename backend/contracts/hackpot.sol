@@ -80,10 +80,11 @@ contract Hackpot {
         isPlaying = false;
     }
 
+
     function betTokens(uint256 amount) public pauseWhilePlaying {
         if(isBetting == false) {
             isBetting = true;
-            betSFinishTime = block.timestamp+60;
+            betSFinishTime = block.timestamp+5;
         }
         require(ERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
         players.push(msg.sender);

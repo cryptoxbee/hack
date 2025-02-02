@@ -28,31 +28,52 @@ async function main() {
     await hackpot.waitForDeployment();
     console.log("Hackpot deployed to:", hackpot.target);
 
+    console.log("bahis öncesi ether bakiye owner:   ", await ethers.provider.getBalance(owner.address));
+    console.log("bahis öncesi ether bakiye user2:   ", await ethers.provider.getBalance(user2.address));
+    console.log("bahis öncesi ether bakiye user1:   ", await ethers.provider.getBalance(user1.address));
 
+    // Token dağıtımı
     await hacktoken.mint(owner.address, ethers.parseEther("1000"));
     await hacktoken.mint(user1.address, ethers.parseEther("1000"));
+    await hacktoken.mint(user2.address, ethers.parseEther("1000"));
 
-
+    // Token onayları
     await hacktoken.approve(hackpot.target, ethers.parseEther("1000"));
     await hacktoken.connect(user1).approve(hackpot.target, ethers.parseEther("1000"));
-
+    await hacktoken.connect(user2).approve(hackpot.target, ethers.parseEther("1000"));
 
     console.log("Bahis öncesi owner bakiye:   ", await hacktoken.balanceOf(owner.address));
     console.log("Bahis öncesi user1 bakiye:   ", await hacktoken.balanceOf(user1.address));
+    console.log("Bahis öncesi user2 bakiye:   ", await hacktoken.balanceOf(user2.address));
 
+    // Bahisler
     await hackpot.betTokens(ethers.parseEther("100"));
     await hackpot.connect(user1).betTokens(ethers.parseEther("100"));
-    await new Promise(resolve => setTimeout(resolve, 65000));
+    await hackpot.connect(user2).betTokens(ethers.parseEther("100"));
+
+    await new Promise(resolve => setTimeout(resolve, 6000));
 
     console.log("Bahis sonrası owner bakiye:   ", await hacktoken.balanceOf(owner.address));
     console.log("Bahis sonrası user1 bakiye:   ", await hacktoken.balanceOf(user1.address));
+    console.log("Bahis sonrası user2 bakiye:   ", await hacktoken.balanceOf(user2.address));
 
     await hackpot.selectWinner();
     console.log("randomNumber:  ", await hackpot.randomNumber1());
     console.log("Kazanan:  ", await hackpot.winner());
+
     console.log("oyun sonrası owner bakiye:   ", await hacktoken.balanceOf(owner.address));
     console.log("oyun sonrası user1 bakiyesi:   ", await hacktoken.balanceOf(user1.address));
+    console.log("oyun sonrası user2 bakiyesi:   ", await hacktoken.balanceOf(user2.address));
     console.log("oyun sonrası feeSetter bakiyesi:   ", await hackpotFeeSetter.showBalance());
+
+    console.log("oyun sonrası ether bakiye owner:   ", await ethers.provider.getBalance(owner.address));
+    console.log("oyun sonrası ether bakiye user1:   ", await ethers.provider.getBalance(user1.address));
+    console.log("oyun sonrası ether bakiye user2:   ", await ethers.provider.getBalance(user2.address));
+
+
+
+
+
 }
 
 main().catch((error) => {
