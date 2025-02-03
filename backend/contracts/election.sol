@@ -4,19 +4,19 @@ pragma solidity ^0.8.26;
 contract Election {
     address[] private realVoters;//ONAYLANMIŞ VOTERLAR
     address[] public owners;//YETKİLİLER
-    mapping(address => string) private delegationVotes;//VOTERIN OYU
+    mapping(address => address) private delegationVotes;//VOTERIN OYU
     address[] public delegationCandidates;//ADAYLAR
-    mapping(address => string) private developerVotes;//VOTERİN OYU
+    mapping(address => address) private developerVotes;//VOTERİN OYU
     address[] public developerCandidates;//ADAYLAR
-    mapping(address => string) private designerVotes;//VOTERİN OYU
+    mapping(address => address) private designerVotes;//VOTERİN OYU
     address[] public designerCandidates;//ADAYLAR
-    mapping(address => string) private researcherVotes;//VOTERİN OYU
+    mapping(address => address) private researcherVotes;//VOTERİN OYU
     address[] public researcherCandidates;//ADAYLAR
 
-    mapping(string => uint16) private delegationVotesCount;//ADAYIN ALDIĞI OY SAYISI
-    mapping(string => uint16) private developerVotesCount;//ADAYIN ALDIĞI OY SAYISI
-    mapping(string => uint16) private designerVotesCount;//ADAYIN ALDIĞI OY SAYISI
-    mapping(string => uint16) private researcherVotesCount;//ADAYIN ALDIĞI OY SAYISI
+    mapping(address => uint16) private delegationVotesCount;//ADAYIN ALDIĞI OY SAYISI
+    mapping(address => uint16) private developerVotesCount;//ADAYIN ALDIĞI OY SAYISI
+    mapping(address => uint16) private designerVotesCount;//ADAYIN ALDIĞI OY SAYISI
+    mapping(address => uint16) private researcherVotesCount;//ADAYIN ALDIĞI OY SAYISI
 
     
 
@@ -135,61 +135,48 @@ contract Election {
     //VOTELERİN YAPILMASI(REVOTE İÇİN DE KULLANILIR)
     /////////////////////////////////////////////////////////////////////////////////
 
-    function vote(string memory delegationCandidate, string memory developerCandidate, string memory designerCandidate, string memory researcherCandidate) public isElectionOn isRealVoter {
-        for(uint256 i = 0; i < delegationCandidates.length; i++) {  
-
-            if(delegationCandidates[i] == msg.sender) {
-                delegationVotes[msg.sender] = delegationCandidate;
-            }
-            else if(i==delegationCandidates.length-1) {
-                delegationVotes[msg.sender] = "";
-            }
+    function vote(
+        address delegationCandidate,
+        address developerCandidate,
+        address designerCandidate,
+        address researcherCandidate
+    ) public isElectionOn isRealVoter {
+        // Önceki oyları sıfırla (eğer varsa)
+        if(delegationVotes[msg.sender] != address(0)) {
+            delegationVotesCount[delegationVotes[msg.sender]]--;
         }
-        for(uint256 i = 0; i < developerCandidates.length; i++) {
-            if(developerCandidates[i] == msg.sender) {
-                developerVotes[msg.sender] = developerCandidate;
-            }
-            else if(i==developerCandidates.length-1) {
-                developerVotes[msg.sender] = "";
-            }
+        if(developerVotes[msg.sender] != address(0)) {
+            developerVotesCount[developerVotes[msg.sender]]--;
         }
-        for(uint256 i = 0; i < designerCandidates.length; i++) {
-            if(designerCandidates[i] == msg.sender) {
-                designerVotes[msg.sender] = designerCandidate;
-            }
-            else if(i==designerCandidates.length-1) {
-                designerVotes[msg.sender] = "";
-            }
+        if(designerVotes[msg.sender] != address(0)) {
+            designerVotesCount[designerVotes[msg.sender]]--;
         }
-        for(uint256 i = 0; i < researcherCandidates.length; i++) {
-            if(researcherCandidates[i] == msg.sender) {
-                researcherVotes[msg.sender] = researcherCandidate;
-            }
-            else if(i==researcherCandidates.length-1) {
-                researcherVotes[msg.sender] = "";
-            }
+        if(researcherVotes[msg.sender] != address(0)) {
+            researcherVotesCount[researcherVotes[msg.sender]]--;
         }
 
+        // Yeni oyları kaydet
+        delegationVotes[msg.sender] = delegationCandidate;
+        developerVotes[msg.sender] = developerCandidate;
+        designerVotes[msg.sender] = designerCandidate;
+        researcherVotes[msg.sender] = researcherCandidate;
 
+        // Oy sayılarını artır
+        delegationVotesCount[delegationCandidate]++;
+        developerVotesCount[developerCandidate]++;
+        designerVotesCount[designerCandidate]++;
+        researcherVotesCount[researcherCandidate]++;
+
+        // Eğer ilk kez oy kullanıyorsa listeye ekle
+        bool isFirstVote = true;
         for(uint256 i = 0; i < voters.length; i++) {
-            if(bytes(delegationVotes[voters[i]]).length > 0) {
-                delegationVotesCount[delegationVotes[voters[i]]]++;
+            if(voters[i] == msg.sender) {
+                isFirstVote = false;
+                break;
             }
         }
-        for(uint256 i = 0; i < developerCandidates.length; i++) {
-            if(bytes(developerVotes[developerCandidates[i]]).length > 0) {
-                developerVotesCount[developerVotes[developerCandidates[i]]]++;
-            }
-        }
-        for(uint256 i = 0; i < designerCandidates.length; i++) {
-            if(bytes(designerVotes[designerCandidates[i]]).length > 0) {
-                designerVotesCount[designerVotes[designerCandidates[i]]]++;
-            }
-        }
-        for(uint256 i = 0; i < researcherCandidates.length; i++) {
-            if(bytes(researcherVotes[researcherCandidates[i]]).length > 0) {
-                researcherVotesCount[researcherVotes[researcherCandidates[i]]]++;
-            }
+        if(isFirstVote) {
+            voters.push(msg.sender);
         }
     }
 
@@ -212,7 +199,7 @@ contract Election {
     function showDelegationVotes() public view afterElection returns(uint16[] memory) {
         uint16[] memory result = new uint16[](delegationCandidates.length);
         for(uint256 i = 0; i < delegationCandidates.length; i++) {
-            result[i] = delegationVotesCount[addressToString(delegationCandidates[i])];
+            result[i] = delegationVotesCount[delegationCandidates[i]];
         }
         return result;
     }
@@ -220,7 +207,7 @@ contract Election {
     function showDeveloperVotes() public view afterElection returns(uint16[] memory) {
         uint16[] memory result = new uint16[](developerCandidates.length);
         for(uint256 i = 0; i < developerCandidates.length; i++) {
-            result[i] = developerVotesCount[addressToString(developerCandidates[i])];
+            result[i] = developerVotesCount[developerCandidates[i]];
         }
         return result;
     }
@@ -228,7 +215,7 @@ contract Election {
     function showDesignerVotes() public view afterElection returns(uint16[] memory) {
         uint16[] memory result = new uint16[](designerCandidates.length);
         for(uint256 i = 0; i < designerCandidates.length; i++) {
-            result[i] = designerVotesCount[addressToString(designerCandidates[i])];
+            result[i] = designerVotesCount[designerCandidates[i]];
         }
         return result;
     }
@@ -236,7 +223,7 @@ contract Election {
     function showResearcherVotes() public view afterElection returns(uint16[] memory) {
         uint16[] memory result = new uint16[](researcherCandidates.length);
         for(uint256 i = 0; i < researcherCandidates.length; i++) {
-            result[i] = researcherVotesCount[addressToString(researcherCandidates[i])];
+            result[i] = researcherVotesCount[researcherCandidates[i]];
         }
         return result;
     }
