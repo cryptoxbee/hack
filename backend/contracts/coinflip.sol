@@ -1,83 +1,114 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-/**
- * @title CoinFlipGame
- * @notice Bu kontrat, oyuncuların Ether ile coinflip (yazı-tura) oyunu oynamasını sağlar.
- * Oyuncular bahis olarak Ether gönderir; doğru tahmin durumunda yatırdıkları bahsin 2 katı ödenir.
- */
-contract CoinFlipGame {
+interface IERC20 {
+    function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+}
+interface randomNumber {
+    function generateRandomInRange(uint256 min, uint256 max) external view returns (uint256);
+}
+
+contract Coinflip {
     address public owner;
+    address public tokenAddress;
+    address public feeSetter;
+    address public randomNumberAddress;
 
-    /// Bahis sonucunu loglamak için event
-    event BetResult(
-        address indexed player,
-        uint256 betAmount,
-        bool playerGuess,
-        bool outcome,   // Gerçek sonuç (örneğin true = "Yazı", false = "Tura")
-        bool win
-    );
+    address[] public heads;//yazı
+    uint256[] public headsAmount;
 
-    /// Sadece kontrat sahibi tarafından çağrılabilecek fonksiyonlar için modifier
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Sadece kontrat sahibi kullanabilir.");
+    address[] public tails;//tura
+    uint256[] public tailsAmount;
+
+    bool public isBetting = false;
+    bool public isPaused = false;
+
+    modifier Betting() {
+        require(isBetting, "Betting is not active");
         _;
     }
 
-    constructor() {
+    modifier notBetting() {
+        require(!isBetting, "Betting is active");
+        _;
+    }
+
+    modifier Paused() {
+        require(isPaused, "Betting is not paused");
+        _;
+    }
+
+    modifier NotPaused() {
+        require(!isPaused, "Betting is paused");
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+
+    function pause() external onlyOwner notBetting {
+        isPaused = true;
+    }
+
+    function unpause() external onlyOwner {
+        isPaused = false;
+    }
+    
+    constructor(address _tokenAddress, address _feeSetter, address _randomNumberAddress) {
         owner = msg.sender;
+        tokenAddress = _tokenAddress;
+        feeSetter = _feeSetter;
+        randomNumberAddress = _randomNumberAddress;
     }
 
-    /**
-     * @notice Oyuncunun coinflip oyunu oynamasını sağlar.
-     * Bahis gönderimi için fonksiyona Ether eklenmelidir.
-     * @param guess Oyuncunun tahmini; örneğin true = "Yazı", false = "Tura".
-     * @return win Bahsin kazanılıp kazanılmadığı.
-     */
-    function flipCoin(bool guess) external payable returns (bool win) {
-        uint256 betAmount = msg.value;
-        require(betAmount > 0, "Bahis miktari sifirdan buyuk olmali.");
+    function betHeads(uint256 amount) external {
+        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        heads.push(msg.sender);
+        headsAmount.push(amount);
+    }
 
-        // Kontrat, oyuncunun kazanması durumunda 2 * bahis tutarini ödeyebilmelidir.
-        // msg.value kontrata eklendikten sonra bakiyede yer alır.
-        require(address(this).balance >= 2 * betAmount, "Kontratta yeterli bakiye yok.");
+    function betTails(uint256 amount) external {
+        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        tails.push(msg.sender);
+        tailsAmount.push(amount);
+    }
 
-        // Basit rastgelelik: true veya false üretir.
-        bool outcome = random();
+    function selectWinner() public {
+        uint256 randomNumber = randomNumber(randomNumberAddress).generateRandomInRange(0, 100);
+        if (randomNumber < 50) {
+            for (uint256 i = 0; i < heads.length; i++) {
+                IERC20(tokenAddress).transfer(heads[i], headsAmount[i]*95/100);
+            }
+            tailsAmount = new uint256[](0);
+            tails = new address[](0);
+            headsAmount = new uint256[](0);
+            heads = new address[](0);
 
-        if (outcome == guess) {
-            // Oyuncu doğru tahmin etti: 2 * bahis miktarini öde.
-            (bool success, ) = payable(msg.sender).call{value:  195*betAmount/100}("");
-            require(success, "Odeme islemi basarisiz.");
-            win = true;
         } else {
-            // Yanlis tahmin: bahis kontratta kalir.
-            win = false;
+            for (uint256 i = 0; i < tails.length; i++) {
+                IERC20(tokenAddress).transfer(tails[i], tailsAmount[i]*95/100);
+            }
+            tailsAmount = new uint256[](0);
+            tails = new address[](0);
+            headsAmount = new uint256[](0);
+            heads = new address[](0);
         }
-
-        emit BetResult(msg.sender, betAmount, guess, outcome, win);
     }
 
-    /**
-     * @notice Basit (güvenli olmayan) rastgelelik fonksiyonu.
-     * Gerçek projelerde Chainlink VRF gibi oracle çözümleri kullanılması önerilir.
-     */
-    function random() internal view returns (bool) {
-        uint256 randomHash = uint256(
-            keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))
-        );
-        return (randomHash % 2 == 0);
+    function withdraw() external onlyOwner Paused {
+        IERC20(tokenAddress).transfer(owner, IERC20(tokenAddress).balanceOf(address(this)));
     }
 
-    /**
-     * @notice Kontrat sahibinin kontrata Ether yatırması için kullanılabilir.
-     */
-    function deposit() external payable onlyOwner {
-        // Ether, fon çağrısıyla otomatik olarak kontrata aktarılır.
+    function getHeadsLength() public view returns (uint256) {
+        return heads.length;
     }
 
-    /**
-     * @notice Kontrata doğrudan Ether gönderilebilmesi için receive fonksiyonu.
-     */
-    receive() external payable {}
+    function getTailsLength() public view returns (uint256) {
+        return tails.length;
+    }
 }
