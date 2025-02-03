@@ -135,39 +135,78 @@ contract Election {
     //VOTELERİN YAPILMASI(REVOTE İÇİN DE KULLANILIR)
     /////////////////////////////////////////////////////////////////////////////////
 
-    function vote(
-        address delegationCandidate,
-        address developerCandidate,
-        address designerCandidate,
-        address researcherCandidate
-    ) public isElectionOn isRealVoter {
-        // Önceki oyları sıfırla (eğer varsa)
+    // Delegation için oy verme
+    function voteForDelegation(address delegationCandidate) public isElectionOn isRealVoter {
+        // Önceki oyu sıfırla (eğer varsa)
         if(delegationVotes[msg.sender] != address(0)) {
             delegationVotesCount[delegationVotes[msg.sender]]--;
         }
+
+        // Yeni oyu kaydet
+        delegationVotes[msg.sender] = delegationCandidate;
+        delegationVotesCount[delegationCandidate]++;
+
+        // İlk kez oy kullanıyorsa listeye ekle
+        bool isFirstVote = true;
+        for(uint256 i = 0; i < voters.length; i++) {
+            if(voters[i] == msg.sender) {
+                isFirstVote = false;
+                break;
+            }
+        }
+        if(isFirstVote) {
+            voters.push(msg.sender);
+        }
+    }
+
+    // Developer için oy verme
+    function voteForDeveloper(address developerCandidate) public isElectionOn isRealVoter {
         if(developerVotes[msg.sender] != address(0)) {
             developerVotesCount[developerVotes[msg.sender]]--;
         }
+        developerVotes[msg.sender] = developerCandidate;
+        developerVotesCount[developerCandidate]++;
+
+        bool isFirstVote = true;
+        for(uint256 i = 0; i < voters.length; i++) {
+            if(voters[i] == msg.sender) {
+                isFirstVote = false;
+                break;
+            }
+        }
+        if(isFirstVote) {
+            voters.push(msg.sender);
+        }
+    }
+
+    // Designer için oy verme
+    function voteForDesigner(address designerCandidate) public isElectionOn isRealVoter {
         if(designerVotes[msg.sender] != address(0)) {
             designerVotesCount[designerVotes[msg.sender]]--;
         }
+        designerVotes[msg.sender] = designerCandidate;
+        designerVotesCount[designerCandidate]++;
+
+        bool isFirstVote = true;
+        for(uint256 i = 0; i < voters.length; i++) {
+            if(voters[i] == msg.sender) {
+                isFirstVote = false;
+                break;
+            }
+        }
+        if(isFirstVote) {
+            voters.push(msg.sender);
+        }
+    }
+
+    // Researcher için oy verme
+    function voteForResearcher(address researcherCandidate) public isElectionOn isRealVoter {
         if(researcherVotes[msg.sender] != address(0)) {
             researcherVotesCount[researcherVotes[msg.sender]]--;
         }
-
-        // Yeni oyları kaydet
-        delegationVotes[msg.sender] = delegationCandidate;
-        developerVotes[msg.sender] = developerCandidate;
-        designerVotes[msg.sender] = designerCandidate;
         researcherVotes[msg.sender] = researcherCandidate;
-
-        // Oy sayılarını artır
-        delegationVotesCount[delegationCandidate]++;
-        developerVotesCount[developerCandidate]++;
-        designerVotesCount[designerCandidate]++;
         researcherVotesCount[researcherCandidate]++;
 
-        // Eğer ilk kez oy kullanıyorsa listeye ekle
         bool isFirstVote = true;
         for(uint256 i = 0; i < voters.length; i++) {
             if(voters[i] == msg.sender) {
@@ -183,18 +222,7 @@ contract Election {
     /////////////////////////////////////////////////////////////////////////////////
     //SONUÇLARIN HESAPLANIP GÖSTERİLMESİ
     /////////////////////////////////////////////////////////////////////////////////
-    function addressToString(address _addr) internal pure returns (string memory) {
-        bytes32 value = bytes32(uint256(uint160(_addr)));
-        bytes memory alphabet = "0123456789abcdef";
-        bytes memory str = new bytes(42);
-        str[0] = "0";
-        str[1] = "x";
-        for (uint256 i = 0; i < 20; i++) {
-            str[2+i*2] = alphabet[uint8(value[i + 12] >> 4)];
-            str[3+i*2] = alphabet[uint8(value[i + 12] & 0x0f)];
-        }
-        return string(str);
-    }
+    
 
     function showDelegationVotes() public view afterElection returns(uint16[] memory) {
         uint16[] memory result = new uint16[](delegationCandidates.length);

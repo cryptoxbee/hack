@@ -59,16 +59,20 @@ async function main() {
         await election.researcherCandidates(1)
     );
 
-    // Oy verme işlemini test et
+    // Oy verme işlemlerini test et
     console.log("\nOy verme test ediliyor...");
     try {
-        await election.connect(user2).vote(
-            user1.address,
-            user3.address,
-            user5.address,
-            user7.address
-        );
-        console.log("Oy verme başarılı");
+        await election.connect(user2).voteForDelegation(user1.address);
+        console.log("Delegation oyu verildi");
+
+        await election.connect(user2).voteForDeveloper(user3.address);
+        console.log("Developer oyu verildi");
+
+        await election.connect(user2).voteForDesigner(user5.address);
+        console.log("Designer oyu verildi");
+
+        await election.connect(user2).voteForResearcher(user7.address);
+        console.log("Researcher oyu verildi");
     } catch (error) {
         console.log("Oy verme hatası:", error.message);
     }
