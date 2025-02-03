@@ -15,4 +15,8 @@ contract HackpotToken is ERC20 {
         require(msg.sender == owner, "Only owner can mint");
         _mint(to, amount);
     }
+
+    function burn(uint256 amount) public {
+        _burn(msg.sender, amount);
+    }
 }
