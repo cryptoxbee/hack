@@ -3,10 +3,10 @@ pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
-contract HackpotToken is ERC20Permit {
+contract pHackpotToken is ERC20Permit {
     address public owner;
 
-    constructor() ERC20("Hackpot Token", "HPOT") ERC20Permit("Hackpot Token") {
+    constructor() ERC20("pHackpot Token", "pHPOT") ERC20Permit("pHackpot Token") {
         owner = msg.sender;
         _mint(msg.sender, 1000000 * 10**decimals());
     }
