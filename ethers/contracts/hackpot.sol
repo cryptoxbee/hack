@@ -37,18 +37,42 @@ contract pHackpot is VRFConsumerBaseV2Plus {
     uint256 public randomNumber1;
     event betPlaced(address player, uint256 amount);
 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//VRF İÇİN  
+
     uint256 public s_subscriptionId;
     bytes32 public keyHash = 0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be;
-    uint32 public callbackGasLimit = 50000000000;
+    uint32 public callbackGasLimit = 3000000;
     uint16 public requestConfirmations = 3;
     uint32 public numWords = 1;
 
+    struct RequestStatus {
+        bool fulfilled;
+        bool exists;
+        uint256[] randomWords;
+    }
+    mapping(uint256 => RequestStatus) public s_requests;
 
+    uint256[] public requestIds;
+    uint256 public lastRequestId;
+
+    mapping(uint256 => uint256[]) public randoms;
+
+
+    address[] public ownersForVrf;
+
+    function addOwnerForVrf(address aowner) public onlyOwner {
+        ownersForVrf.push(aowner);
+    }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     constructor(address afeeSetter, address atokenAddress, uint256 subId) VRFConsumerBaseV2Plus(0x5CE8D5A2BC84beb22a398CCA51996F7930313D61) {
         feeSetter = afeeSetter;
         owner = msg.sender;
         tokenAddress = atokenAddress;
         s_subscriptionId = subId;
+        ownersForVrf.push(msg.sender);
     }
     
     modifier selectingWinnerTrue() {
@@ -61,11 +85,15 @@ contract pHackpot is VRFConsumerBaseV2Plus {
         isSelectingWinner = false;
     }
 
+    modifier pauseWhileSelectingWinner() {
+        require(isSelectingWinner == false, "Game is still in progress");
+        _;
+    }
 
     function requestRandomWords(
         //ödeme yöntemi
         bool enableNativePayment
-    ) isSelectingWinner selectingWinnerTrue external returns (uint256 requestId) {
+    ) pauseWhileSelectingWinner selectingWinnerTrue external returns (uint256 requestId) {
         //random sayı üretiliyor
         requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
@@ -105,11 +133,25 @@ contract pHackpot is VRFConsumerBaseV2Plus {
     }
 
 
+    modifier onlyOwnersFortVrf() {
+        bool isOwner = false;
+        for(uint256 i = 0; i < ownersForVrf.length; i++) {
+            if(msg.sender == ownersForVrf[i]) {
+                isOwner = true;
+                break;
+            }
+        }
+        require(isOwner, "Only owners can call this function");
+        _;
+    }
+
+
     function fulfillRandomWords(
         uint256 _requestId,
         uint256[] calldata _randomWords
-    )  internal override {
+    )  internal onlyOwnersFortVrf override {
         require(s_requests[_requestId].exists, "request not found");
+        require(s_requests[_requestId].fulfilled == false, "request already fulfilled");
         s_requests[_requestId].fulfilled = true;
         s_requests[_requestId].randomWords = _randomWords;
         emit RequestFulfilled(_requestId, _randomWords);
@@ -132,10 +174,7 @@ contract pHackpot is VRFConsumerBaseV2Plus {
 
 
 
-    modifier pauseWhileSelectingWinner() {
-        require(isSelectingWinner == false, "Game is still in progress");
-        _;
-    }
+    
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
@@ -153,26 +192,29 @@ contract pHackpot is VRFConsumerBaseV2Plus {
 
 
 
-
+    //seleWinner fonksiyonunu 2 kez çağırılmasını önlemek için
     bool public isExecutingSelectWinner;
     modifier isExecutingSelectWinner() {
         require(isSelectingWinner == false, "Game is not in progress");
+        isExecutingSelectWinner = true;
         _;
+        isExecutingSelectWinner = false;
     }
 
-    function selectWinner() public onlyOwner isExecutingSelectWinner returns (address) {
+    function selectWinner() public selectingWinnerExecuting returns (address) {
 
         //bahis bitim zamanı kontrol ediliyor
         require(block.timestamp >= betSFinishTime, "Betting time is not over");
 
 
-        //fonksiyon kitleniyor
-        isExecutingSelectWinner = true;
+        
 
 
         uint256 startPoint = 0;
+
         //random sayı üretiliyor
-        randomNumber1 = randomNumber(randomNumberAddress).generateRandomInRange(0, totalBets);
+        randomNumber1 = randoms[lastRequestId];
+        randomNumber1 = randomNumber1 % totalBets;
         for (uint256 i = 0; i < players.length; i++) {
             //kazananın alanına girdiyse:
             if (startPoint + bets[players[i]] >= randomNumber1) {
@@ -196,8 +238,6 @@ contract pHackpot is VRFConsumerBaseV2Plus {
         }
         //random sayı üretimi kilidi kaldırılıyor
         isSelectingWinner = false;
-        //fonksiyon kilidi kaldırılıyor
-        isExecutingSelectWinner = false;
 
     }
 
