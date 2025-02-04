@@ -20,7 +20,7 @@ contract SubscriptionConsumer is VRFConsumerBaseV2Plus {
     uint256 public lastRequestId;
 
     bytes32 public keyHash = 0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be;
-    uint32 public callbackGasLimit = 1000000;
+    uint32 public callbackGasLimit = 50000000000;
     uint16 public requestConfirmations = 3;
     uint32 public numWords = 1;
 

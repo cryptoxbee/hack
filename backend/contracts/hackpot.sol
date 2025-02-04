@@ -4,7 +4,8 @@ pragma solidity ^0.8.26;
 interface randomNumber {
     function generateRandomInRange(uint256 _min, uint256 _max) external view returns (uint256);
 }
-interface ERC20 {
+
+interface IERC20 {
     function transfer(address to, uint256 value) external returns (bool);
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
@@ -60,8 +61,8 @@ contract Hackpot {
             //kazananın alanına girdiyse:
             if (startPoint + bets[players[i]] >= randomNumber1) {
                 //kazanana token gönderiliyor
-                ERC20(tokenAddress).transfer(feeSetter, totalBets/100);
-                ERC20(tokenAddress).transfer(players[i], (totalBets*99)/100);
+                IERC20(tokenAddress).transfer(feeSetter, totalBets/100);
+                IERC20(tokenAddress).transfer(players[i], (totalBets*99)/100);
                 //totalBets sıfırlanıyor
                 totalBets = 0;
                 winner = players[i];
@@ -80,13 +81,12 @@ contract Hackpot {
         isPlaying = false;
     }
 
-
     function betTokens(uint256 amount) public pauseWhilePlaying {
         if(isBetting == false) {
             isBetting = true;
             betSFinishTime = block.timestamp+5;
         }
-        require(ERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
         players.push(msg.sender);
         bets[msg.sender] += amount;
         totalBets += amount;
