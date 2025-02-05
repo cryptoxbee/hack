@@ -1,0 +1,105 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+
+interface randomNumber {
+    function generateRandomInRange(uint256 _min, uint256 _max) external view returns (uint256);
+}
+
+interface ERC20 {
+    function transfer(address to, uint256 value) external returns (bool);
+    function transferFrom(address from, address to, uint256 value) external returns (bool);
+}
+
+contract Hackpot is AutomationCompatibleInterface {
+    address public feeSetter;
+    address public owner;
+    address public randomNumberAddress;
+    uint256 public totalBets;
+    mapping(address => uint256) public bets;
+    address[] public players;
+    address public tokenAddress;
+    bool public isPlaying = false;
+    bool public isBetting = false;
+    uint256 public betSFinishTime;
+    address public winner;
+    uint256 public randomNumber1;
+    uint256 public lastExecutionTime;
+    uint256 public interval = 60; // 60 saniye
+
+    event betPlaced(address player, uint256 amount);
+
+    constructor(address afeeSetter, address arandomNumber, address atokenAddress) {
+        feeSetter = afeeSetter;
+        owner = msg.sender;
+        randomNumberAddress = arandomNumber;
+        tokenAddress = atokenAddress;
+        lastExecutionTime = block.timestamp; // Başlangıç zamanını ayarla
+    }
+
+    modifier pauseWhilePlaying() {
+        require(isPlaying == false, "Game is still in progress");
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+
+    function setFeeSetter(address afeeSetter) public onlyOwner {
+        feeSetter = afeeSetter;
+    }
+
+    function setOwner(address aowner) public onlyOwner {
+        owner = aowner;
+    }
+
+    function selectWinner() public onlyOwner pauseWhilePlaying returns (address) {
+        require(block.timestamp >= betSFinishTime, "Betting time is not over");
+        isPlaying = true;
+        uint256 startPoint = 0;
+        randomNumber1 = randomNumber(randomNumberAddress).generateRandomInRange(0, totalBets);
+        for (uint256 i = 0; i < players.length; i++) {
+            if (startPoint + bets[players[i]] >= randomNumber1) {
+                ERC20(tokenAddress).transfer(feeSetter, totalBets / 100);
+                ERC20(tokenAddress).transfer(players[i], (totalBets * 99) / 100);
+                totalBets = 0;
+                winner = players[i];
+
+                for (uint256 j = 0; j < players.length; j++) {
+                    delete bets[players[j]];
+                }
+                players = new address              break;
+            }
+            startPoint += bets[players[i]];
+        }
+        isPlaying = false;
+        lastExecutionTime = block.timestamp; // Çalışma zamanını güncelle
+    }
+
+    function betTokens(uint256 amount) public pauseWhilePlaying {
+        if (isBetting == false) {
+            isBetting = true;
+            betSFinishTime = block.timestamp + 5;
+        }
+        require(ERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        players.push(msg.sender);
+        bets[msg.sender] += amount;
+        totalBets += amount;
+        emit betPlaced(msg.sender, amount);
+    }
+
+    // Chainlink Keepers tarafından çağrılan fonksiyon (kontrol için)
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory) {
+        upkeepNeeded = (block.timestamp - lastExecutionTime) >= interval;
+    }
+
+    // Chainlink Keepers tarafından 60 saniyede bir çağrılan fonksiyon
+    function performUpkeep(bytes calldata) external override {
+        if ((block.timestamp - lastExecutionTime) >= interval) {
+            selectWinner();
+        }
+    }
+}
