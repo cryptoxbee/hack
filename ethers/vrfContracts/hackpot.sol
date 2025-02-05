@@ -4,9 +4,6 @@ pragma solidity ^0.8.26;
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts@1.2.0/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts@1.2.0/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-interface randomNumber {
-    function generateRandomInRange(uint256 _min, uint256 _max) external view returns (uint256);
-}
 interface IERC20Permit {
     function transfer(address to, uint256 value) external returns (bool);
     function transferFrom(address from, address to, uint256 value) external returns (bool);
