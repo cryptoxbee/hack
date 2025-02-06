@@ -95,13 +95,13 @@ async function main() {
         // Wallet1'in bahisi
         console.log("\n--- Bahisler Yapılıyor ---");
         console.log("Wallet1 bahis yapıyor...");
-        const tx1 = await hackpotContract.betTokens(amount1, deadline, sig1.v, sig1.r, sig1.s);
+        const tx1 = await hackpotContract.betTokens(amount1, deadline);
         await tx1.wait();
         console.log("Wallet1: 100 pHPOT ile bahis yapıldı");
 
         // Wallet2'nin bahisi
         console.log("Wallet2 bahis yapıyor...");
-        const tx2 = await hackpotContract.connect(wallet2).betTokens(amount2, deadline, sig2.v, sig2.r, sig2.s);
+        const tx2 = await hackpotContract.connect(wallet2).betTokens(amount2, deadline);
         await tx2.wait();
         console.log("Wallet2: 200 pHPOT ile bahis yapıldı");
 

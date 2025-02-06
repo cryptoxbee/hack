@@ -21,6 +21,9 @@ contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
     address public tokenAddress;
     address public feeSetter;
     address public randomNumberAddress;
+    bool public isWonTails=true;
+
+    address[] players;
 
     address[] public heads;//yazı
     uint256[] public headsAmount;
@@ -31,7 +34,7 @@ contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
     bool public isBetting = false;
     bool public isPaused = false;
 
-
+    uint256 public nthGame = 0;
     
     uint256 public betSFinishTime;
 
@@ -161,6 +164,7 @@ contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         IERC20Permit(tokenAddress).permit(msg.sender, address(this), amount, deadline, v, r, s);
         require(IERC20Permit(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
         heads.push(msg.sender);
+        players.push(msg.sender);
         headsAmount.push(amount);
     }
 
@@ -174,6 +178,7 @@ contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         IERC20Permit(tokenAddress).permit(msg.sender, address(this), amount, deadline, v, r, s);
         require(IERC20Permit(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
         tails.push(msg.sender);
+        players.push(msg.sender);
         tailsAmount.push(amount);
     }
 
@@ -185,6 +190,7 @@ contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         //ödeme yöntemi
         bool enableNativePayment
     ) pauseWhileSelectingWinner selectingWinnerTrue public  returns (uint256 requestId) {
+        require(players.length > 0, "At least one player required to generate random number");
         //random sayı üretiliyor
         requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
@@ -265,6 +271,8 @@ contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
             tails = new address[](0);
             headsAmount = new uint256[](0);
             heads = new address[](0);
+            players = new address[](0);
+            isWonTails=false;
 
         } else {
             for (uint256 i = 0; i < tails.length; i++) {
@@ -274,8 +282,11 @@ contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
             tails = new address[](0);
             headsAmount = new uint256[](0);
             heads = new address[](0);
+            players = new address[](0);
+            isWonTails=true;
         }
         isSelectingWinner = false;
+        nthGame+=1;
     }
 
     function withdraw() external onlyCreator Paused {

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hackpot Bahis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .bets-container {
+            min-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .bet-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        input {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 200px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        canvas {
+            border-radius: 50%;
+            background-color: #1a2634;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        #totalBetsHeader {
+            transition: background-color 0.5s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="totalBetsHeader"
+        style="position: fixed; top: 0; left: 0; right: 0; background-color: #4CAF50; color: white; padding: 10px; text-align: center; font-weight: bold;">
+        TOTAL BETS: 0 TOKEN</div>
+
+    <!-- Çark için canvas ekleyelim -->
+    <canvas id="wheelCanvas" width="300" height="300" style="margin: 20px auto; display: block;"></canvas>
+
+    <!-- Kazanan adresi için div'i güncelle -->
+    <div id="winnerDisplay"
+        style="text-align: center; margin: 10px auto; padding: 10px; font-weight: bold; color: #333; position: fixed; bottom: 0; left: 0; right: 0; background-color: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);">
+        KAZANAN ADRES: 0x0000000000000000000000000000000000000000
+    </div>
+
+    <!-- Timer div'ini kaldır ve yerine bahis durumu div'i ekle -->
+    <div id="betStatusDisplay"
+        style="position: fixed; top: 60px; right: 20px; font-size: 18px; font-weight: bold; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        Bahis Durumu Kontrol Ediliyor...
+    </div>
+
+    <div class="main-container">
+        <div class="container">
+            <input type="number" id="betAmount" placeholder="Bahis miktarını girin">
+            <button onclick="placeBet()">Bahis Yap</button>
+        </div>
+        <div class="container bets-container" id="betsList">
+            <h3>Aktif Bahisler</h3>
+            <div id="betsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const HACKPOT_ADDRESS = '0xFE3640B7096e62c5065F082BF22437D110342E17';
+        const TOKEN_ADDRESS = '0x84C96D49efd12BD71789576ffcF5aA8A72B8A7eb';
+
+        const hackpotABI = [
+            "function betTokens(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)",
+            "function bets(address) view returns (uint256)",
+            "function players(uint256) view returns (address)",
+            "event betPlaced(address player, uint256 amount)",
+            "event winnerSelected(address winner, uint256 totalBets)",
+            "event executionTimeUpdated(uint256 lastExecutionTime)",
+            "event betStarted(uint256 requestId)",
+            "event totalBetsUpdated(uint256 totalBets)",
+            "function winner() view returns (address)",
+            "function lastExecutionTime() view returns (uint256)",
+            "function isSelectingWinner() view returns (bool)"
+        ];
+
+        const tokenABI = [
+            "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)",
+            "function nonces(address) view returns (uint256)",
+            "function name() view returns (string)"
+        ];
+
+        let provider;
+        let hackpotContract;
+        let totalBetsAmount = 0;
+
+        // Tüm bahisleri tutacak global sözlük
+        let allBets = {};
+
+        let currentRotation = 0;
+        let isSpinning = false;
+        let winnerAddress = null;
+        let currentUserAddress = null;
+        let lastWinnerAddress = '0x0000000000000000000000000000000000000000';
+
+        // Renk dizisini global olarak tanımla
+        const colors = ['#FF0000', '#0000FF', '#FFFF00', '#800080', '#FFA500', '#00FF00', '#FF1493', '#00FFFF'];
+
+        function updateTotalDisplay() {
+            let totalAmount = 0;
+            // Tüm bahisleri topla
+            for (let address in allBets) {
+                totalAmount += parseFloat(allBets[address]);
+            }
+            document.getElementById('totalBetsHeader').innerHTML = `TOTAL BETS: ${totalAmount.toFixed(2)} TOKEN`;
+        }
+
+        function updateBetsDisplay() {
+            const betsContent = document.getElementById('betsContent');
+            const oldScrollTop = betsContent.scrollTop;
+
+            betsContent.innerHTML = '';
+
+            // Bahisleri sırala
+            const sortedBets = Object.entries(allBets).sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]));
+
+            sortedBets.forEach((bet, index) => {
+                const [player, amount] = bet;
+                const betElement = document.createElement('div');
+                betElement.className = 'bet-item';
+                betElement.style.display = 'flex';
+                betElement.style.alignItems = 'center';
+                betElement.style.gap = '10px';
+
+                // Renk karesi
+                const colorSquare = document.createElement('div');
+                colorSquare.style.width = '20px';
+                colorSquare.style.height = '20px';
+                colorSquare.style.backgroundColor = colors[index % colors.length];
+                colorSquare.style.border = '1px solid #333';
+
+                const betInfo = document.createElement('div');
+                betInfo.innerHTML = `
+                    <div>Adres: ${player}</div>
+                    <div>Miktar: ${amount} TOKEN</div>
+                `;
+
+                betElement.appendChild(colorSquare);
+                betElement.appendChild(betInfo);
+                betsContent.appendChild(betElement);
+            });
+
+            betsContent.scrollTop = oldScrollTop;
+            drawWheel();
+        }
+
+        async function loadExistingBets() {
+            try {
+                // Winner adresini kontrol et
+                try {
+                    const currentWinner = await hackpotContract.winner();
+                    if (currentWinner && currentWinner !== '0x0000000000000000000000000000000000000000') {
+                        if (currentWinner !== lastWinnerAddress && !isSpinning) {
+                            lastWinnerAddress = currentWinner;
+                            updateWinnerDisplay(currentWinner);
+                            spinWheel(currentWinner);
+                            return;
+                        }
+                    } else {
+                        updateWinnerDisplay('0x0000000000000000000000000000000000000000');
+                    }
+                } catch (error) {
+                    console.error("Winner kontrolünde hata:", error);
+                    updateWinnerDisplay('0x0000000000000000000000000000000000000000');
+                }
+
+                // Eğer çark dönüyorsa bahisleri güncelleme
+                if (isSpinning) return;
+
+                let index = 0;
+                let tempBets = {};
+
+                // Mevcut bahisleri yükle
+                while (true) {
+                    try {
+                        const playerAddress = await hackpotContract.players(index);
+                        const betAmount = await hackpotContract.bets(playerAddress);
+
+                        if (betAmount > 0) {
+                            const amountInEther = ethers.formatEther(betAmount);
+                            tempBets[playerAddress] = amountInEther;
+                        }
+
+                        index++;
+                    } catch (error) {
+                        break;
+                    }
+                }
+
+                // Global sözlüğü güncelle
+                allBets = tempBets;
+
+                // UI'ı güncelle
+                updateBetsDisplay();
+                updateTotalDisplay();
+                drawWheel();
+
+            } catch (error) {
+                console.error("Mevcut bahisler yüklenirken hata:", error);
+            }
+        }
+
+        async function initializeContracts() {
+            try {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                hackpotContract = new ethers.Contract(HACKPOT_ADDRESS, hackpotABI, provider);
+
+                // Kullanıcı adresini al
+                const accounts = await provider.send("eth_requestAccounts", []);
+                currentUserAddress = accounts[0];
+
+                // Event dinleyicileri
+                hackpotContract.on("winnerSelected", (winner, totalBets) => {
+                    const totalBetsInEther = ethers.formatEther(totalBets);
+                    lastWinnerAddress = winner;
+                    spinWheel(winner);
+                });
+
+                hackpotContract.on("betPlaced", (player, amount) => {
+                    const amountInEther = ethers.formatEther(amount);
+                    if (allBets[player]) {
+                        allBets[player] = (parseFloat(allBets[player]) + parseFloat(amountInEther)).toString();
+                    } else {
+                        allBets[player] = amountInEther;
+                    }
+                    updateBetsDisplay();
+                    updateTotalDisplay();
+                });
+
+                hackpotContract.on("executionTimeUpdated", () => {
+                    allBets = {};
+                    document.getElementById('betsContent').innerHTML = '<h4>Yeni Tur Başladı!</h4>';
+                    updateTotalDisplay();
+                });
+
+                // İlk yükleme
+                await loadExistingBets();
+
+                // İlk bahis durumu kontrolü
+                await updateBetStatus();
+                // Her 2 saniyede bir bahis durumunu kontrol et
+                setInterval(updateBetStatus, 2000);
+
+            } catch (error) {
+                console.error("Contract initialization error:", error);
+                updateWinnerDisplay('0x0000000000000000000000000000000000000000');
+            }
+        }
+
+        async function placeBet() {
+            try {
+                if (!window.ethereum) {
+                    alert('MetaMask yüklü değil!');
+                    return;
+                }
+
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const userAddress = await signer.getAddress();
+
+                const betAmount = document.getElementById('betAmount').value;
+                const amount = ethers.parseEther(betAmount);
+                const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+                const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenABI, signer);
+                const hackpotContract = new ethers.Contract(HACKPOT_ADDRESS, hackpotABI, signer);
+
+                const domain = {
+                    name: await tokenContract.name(),
+                    version: "1",
+                    chainId: (await provider.getNetwork()).chainId,
+                    verifyingContract: TOKEN_ADDRESS
+                };
+
+                const types = {
+                    Permit: [
+                        { name: "owner", type: "address" },
+                        { name: "spender", type: "address" },
+                        { name: "value", type: "uint256" },
+                        { name: "nonce", type: "uint256" },
+                        { name: "deadline", type: "uint256" }
+                    ]
+                };
+
+                const nonce = await tokenContract.nonces(userAddress);
+                const value = {
+                    owner: userAddress,
+                    spender: HACKPOT_ADDRESS,
+                    value: amount,
+                    nonce: nonce,
+                    deadline: deadline
+                };
+
+                const signature = await signer.signTypedData(domain, types, value);
+                const sig = ethers.Signature.from(signature);
+
+                const tx = await hackpotContract.betTokens(
+                    amount,
+                    deadline,
+                    sig.v,
+                    sig.r,
+                    sig.s
+                );
+
+                await tx.wait();
+                alert('Bahis başarıyla yapıldı!');
+
+            } catch (error) {
+                console.error('Hata:', error);
+                alert('Bahis yapılırken bir hata oluştu: ' + error.message);
+            }
+        }
+
+        // Çarkı döndürme animasyonu
+        function drawWheel() {
+            const canvas = document.getElementById('wheelCanvas');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 20;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Canvas'ı temizle
+
+            // Arka plan dairesini çiz
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2c3e50';
+            ctx.fill();
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Dilimleri çiz
+            let startAngle = 0;
+            const totalBetAmount = Object.values(allBets).reduce((sum, bet) => sum + parseFloat(bet), 0);
+
+            // Sadece çarkı döndür
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(currentRotation * Math.PI / 180);
+            ctx.translate(-centerX, -centerY);
+
+            // Her bahisçi için dilim çiz
+            const sortedBets = Object.entries(allBets).sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]));
+            sortedBets.forEach((bet, index) => {
+                const [player, betAmount] = bet;
+                const sliceAngle = (parseFloat(betAmount) / totalBetAmount) * (2 * Math.PI);
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius - 2, startAngle, startAngle + sliceAngle);
+                ctx.lineTo(centerX, centerY);
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.stroke();
+
+                startAngle += sliceAngle;
+            });
+
+            // İç daireyi çiz
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius - 60, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2c3e50';
+            ctx.fill();
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Merkez noktayı çiz
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ff00ff';
+            ctx.fill();
+
+            ctx.restore();
+
+            // Ok'u en son ve döndürmeden çiz
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - radius + 10);
+            ctx.lineTo(centerX - 15, centerY - radius - 10);
+            ctx.lineTo(centerX + 15, centerY - radius - 10);
+            ctx.closePath();
+            ctx.fillStyle = '#333';
+            ctx.fill();
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function spinWheel(winner) {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            // Mevcut bahisleri kopyala
+            const currentBets = { ...allBets };
+
+            let winnerAngle = 0;
+            let currentAngle = 0;
+            const totalBetAmount = Object.values(currentBets).reduce((sum, bet) => sum + parseFloat(bet), 0);
+
+            const sortedBets = Object.entries(currentBets).sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]));
+
+            for (let [player, betAmount] of sortedBets) {
+                const sliceAngle = (parseFloat(betAmount) / totalBetAmount) * (2 * Math.PI);
+                if (player.toLowerCase() === winner.toLowerCase()) {
+                    winnerAngle = currentAngle + (sliceAngle / 2);
+                    break;
+                }
+                currentAngle += sliceAngle;
+            }
+
+            let targetRotation = (winnerAngle * 180 / Math.PI) + 1080;
+            let startTime = null;
+            const duration = 5000;
+
+            function animate(currentTime) {
+                if (!startTime) startTime = currentTime;
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                currentRotation = easeOut * targetRotation;
+
+                // Çark çiziminde kopyalanmış bahisleri kullan
+                drawWheelWithBets(currentBets);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    isSpinning = false;
+                    updateWinnerDisplay(winner);
+                    showWinnerMessage(winner);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Yeni fonksiyon: Belirli bahislerle çark çizimi
+        function drawWheelWithBets(bets) {
+            const canvas = document.getElementById('wheelCanvas');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 20;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Canvas'ı temizle
+
+            // Arka plan dairesini çiz
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2c3e50';
+            ctx.fill();
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Dilimleri çiz
+            let startAngle = 0;
+            const totalBetAmount = Object.values(bets).reduce((sum, bet) => sum + parseFloat(bet), 0);
+
+            // Sadece çarkı döndür
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(currentRotation * Math.PI / 180);
+            ctx.translate(-centerX, -centerY);
+
+            // Her bahisçi için dilim çiz
+            const sortedBets = Object.entries(bets).sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]));
+            sortedBets.forEach((bet, index) => {
+                const [player, betAmount] = bet;
+                const sliceAngle = (parseFloat(betAmount) / totalBetAmount) * (2 * Math.PI);
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius - 2, startAngle, startAngle + sliceAngle);
+                ctx.lineTo(centerX, centerY);
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.stroke();
+
+                startAngle += sliceAngle;
+            });
+
+            // İç daireyi çiz
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius - 60, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2c3e50';
+            ctx.fill();
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Merkez noktayı çiz
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ff00ff';
+            ctx.fill();
+
+            ctx.restore();
+
+            // Ok'u en son ve döndürmeden çiz
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - radius + 10);
+            ctx.lineTo(centerX - 15, centerY - radius - 10);
+            ctx.lineTo(centerX + 15, centerY - radius - 10);
+            ctx.closePath();
+            ctx.fillStyle = '#333';
+            ctx.fill();
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function updateWinnerDisplay(winner) {
+            const winnerDisplay = document.getElementById('winnerDisplay');
+            winnerDisplay.innerHTML = `KAZANAN ADRES: ${winner}`;
+            if (winner.toLowerCase() === currentUserAddress?.toLowerCase()) {
+                winnerDisplay.style.color = '#FFD700';
+            } else {
+                winnerDisplay.style.color = '#4CAF50';
+            }
+        }
+
+        function showWinnerMessage(winner) {
+            const header = document.getElementById('totalBetsHeader');
+            lastWinnerAddress = winner;
+            updateWinnerDisplay(winner);
+
+            if (winner.toLowerCase() === currentUserAddress?.toLowerCase()) {
+                header.innerHTML = 'TEBRİKLER KAZANDINIZ! 🎉';
+                header.style.backgroundColor = '#FFD700';
+            } else {
+                header.innerHTML = 'TOTAL BETS: 0 TOKEN';
+                header.style.backgroundColor = '#4CAF50';
+            }
+
+            // 5 saniye sonra sıfırlama işlemlerini yap
+            setTimeout(() => {
+                // Önce bahisleri sıfırla
+                allBets = {};
+                // Sonra UI'ı güncelle
+                document.getElementById('betsContent').innerHTML = '';
+                header.innerHTML = 'TOTAL BETS: 0 TOKEN';
+                header.style.backgroundColor = '#4CAF50';
+                updateTotalDisplay();
+                drawWheel();
+            }, 5000); // 5 saniye bekle
+        }
+
+        // Timer ile ilgili tüm kodları kaldır ve yerine bahis durumu kontrolü ekle
+        async function updateBetStatus() {
+            try {
+                const isSelectingWinner = await hackpotContract.isSelectingWinner();
+                const statusDisplay = document.getElementById('betStatusDisplay');
+
+                if (isSelectingWinner) {
+                    statusDisplay.innerHTML = 'Bahisler Kapalı';
+                    statusDisplay.style.backgroundColor = '#FF6B6B'; // Kırmızı
+                    statusDisplay.style.color = 'white';
+                } else {
+                    statusDisplay.innerHTML = 'Bahisler Açık';
+                    statusDisplay.style.backgroundColor = '#4CAF50'; // Yeşil
+                    statusDisplay.style.color = 'white';
+                }
+            } catch (error) {
+                console.error("Bahis durumu kontrolünde hata:", error);
+            }
+        }
+
+        // Sayfa yüklendiğinde çarkı çiz ve event dinleyicilerini ve mevcut bahisleri başlat
+        window.addEventListener('load', () => {
+            drawWheel();
+            initializeContracts();
+        });
+    </script>
+</body>
+
+</html>

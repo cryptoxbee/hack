@@ -89,7 +89,7 @@ contract pHackpot is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         s_subscriptionId = subId;
         ownersForVrf.push(msg.sender);
     }
-    bool isSelectingWinner;
+    bool public isSelectingWinner;
     
     modifier selectingWinnerTrue() {
         isSelectingWinner = true;
@@ -111,6 +111,7 @@ contract pHackpot is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         bool enableNativePayment
     ) pauseWhileSelectingWinner selectingWinnerTrue public  returns (uint256 requestId) {
         //random sayı üretiliyor
+        require(players.length > 0, "At least one player required to generate random number");
         requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 //keyHash
@@ -251,6 +252,7 @@ contract pHackpot is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         }
         //random sayı üretimi kilidi kaldırılıyor
         isSelectingWinner = false;
+        lastExecutionTime=block.timestamp;
 
     }
 
