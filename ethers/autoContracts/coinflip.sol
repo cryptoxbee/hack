@@ -15,6 +15,7 @@ interface IERC20Permit {
     function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
 }
 
+
 contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
     address public creator;
     address public tokenAddress;
@@ -39,7 +40,7 @@ contract Coinflip is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     uint256 public s_subscriptionId;
     bytes32 public keyHash = 0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be;
-    uint32 public callbackGasLimit = 3000000;
+    uint32 public callbackGasLimit = 500000;
     uint16 public requestConfirmations = 3;
     uint32 public numWords = 1;
 
