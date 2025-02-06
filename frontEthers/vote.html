@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITU Blockchain Board Seçimleri</title>
+    
+    <!-- Yeni ethers.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .text-gradient {
+            background: linear-gradient(to right, #a855f7, #7c3aed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f3f4f6;  /* Açık gri arka plan */
+            min-height: 100vh;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            margin: 10px 0;
+        }
+        .max-w-content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        /* Scrollbar stilini özelleştir */
+        .fixed::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .fixed::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .fixed::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 3px;
+        }
+
+        .fixed::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+
+        .text-gradient-purple {
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen text-purple-100">
+    <div class="gradient-bg text-white py-6 mb-8">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl font-bold text-center text-white">ITU BLOCKCHAIN BOARD SEÇİMLERİ</h1>
+            <p class="text-center mt-2 opacity-90">2025-2026 Yönetim Kurulu Seçimleri</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 mb-8">
+        <div class="flex justify-center">
+            <button 
+                id="connectButton"
+                onclick="connectWallet()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Cüzdan Bağla
+            </button>
+        </div>
+        <p id="walletAddress" class="text-center mt-2 text-gray-600"></p>
+    </div>
+
+    <div class="max-w-content px-4">
+       
+
+        <!-- Election Status -->
+        <div class="glass-effect rounded-xl p-6 mb-8 shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Seçim Durumu</h2>
+            <div class="flex items-center justify-between">
+                <p id="electionStatus" class="text-lg text-gray-700">Durum kontrol ediliyor...</p>
+                <button id="startElectionButton" 
+                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+                    Seçimi Başlat
+                </button>
+            </div>
+        </div>
+
+        <!-- Voting Section -->
+        <div class="glass-effect rounded-xl p-6 mb-8 shadow-lg">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Oy Verme</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Kategori</label>
+                    <select id="categorySelect" 
+                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700">
+                        <option value="delegation">Delegasyon</option>
+                        <option value="developer">Geliştirici</option>
+                        <option value="designer">Tasarımcı</option>
+                        <option value="researcher">Araştırmacı</option>
+                        <option value="marketing">Pazarlama</option>
+                        <option value="education">Eğitim</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Aday</label>
+                    <select id="candidateSelect" 
+                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700">
+                        <option value="">Aday Seçin</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Aday listesi buraya dinamik olarak eklenecek -->
+            <div id="candidatesList" class="mt-6"></div>
+
+            <div class="text-center mt-6">
+                <button id="voteButton" 
+                    class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg transition-colors">
+                    Oy Ver
+                </button>
+                <p id="voteStatus" class="mt-4 text-lg text-gray-700"></p>
+            </div>
+        </div>
+
+        <!-- Prediction Section -->
+        <div class="glass-effect rounded-xl p-6 mb-8 shadow-lg">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Seçim Tahmini</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Kategori</label>
+                    <select id="predictionCategory" 
+                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700">
+                        <option value="delegation">Delegasyon</option>
+                        <option value="developer">Geliştirici</option>
+                        <option value="designer">Tasarımcı</option>
+                        <option value="researcher">Araştırmacı</option>
+                        <option value="marketing">Pazarlama</option>
+                        <option value="education">Eğitim</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Aday</label>
+                    <select id="predictionCandidateSelect" 
+                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700">
+                        <option value="">Aday Seçin</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Bahis Miktarı (ETH)</label>
+                    <input type="number" id="predictionAmount" 
+                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700"
+                        placeholder="0.1" step="0.01" min="0">
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button id="predictButton" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors">
+                    Tahmin Yap
+                </button>
+                <p id="predictionStatus" class="mt-4 text-lg text-gray-700"></p>
+            </div>
+        </div>
+
+        <!-- Information Section -->
+        <div class="mt-8 text-center text-gray-400">
+            <p>ITU Blockchain © 2025</p>
+            <p class="mt-2">
+                <a href="#" class="text-purple-400 hover:text-purple-300">Nasıl Oy Kullanılır?</a> | 
+                <a href="#" class="text-purple-400 hover:text-purple-300">Adaylar</a> | 
+                <a href="#" class="text-purple-400 hover:text-purple-300">SSS</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Ana içerik div'inden sonra, body kapanmadan önce -->
+
+    <div class="fixed right-0 top-0 h-full w-64 bg-gray-900 text-white p-4 overflow-y-auto">
+        <h2 class="text-xl font-bold mb-4 border-b pb-2">İşlem Geçmişi</h2>
+        
+        <!-- Oylar -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2 text-purple-400">Verilen Oylar</h3>
+            <div id="voteHistory" class="space-y-2">
+                <!-- Oylar buraya eklenecek -->
+            </div>
+        </div>
+
+        <!-- Bahisler -->
+        <div>
+            <h3 class="text-lg font-semibold mb-2 text-green-400">Yapılan Bahisler</h3>
+            <div id="betHistory" class="space-y-2">
+                <!-- Bahisler buraya eklenecek -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Ethers'ın yüklendiğinden emin ol
+        window.addEventListener('load', async () => {
+            if (typeof ethers === 'undefined') {
+                console.error('Ethers.js yüklenemedi!');
+                alert('Ethers.js yüklenemedi! Sayfayı yenileyin veya farklı bir tarayıcı deneyin.');
+                return;
+            }
+            console.log('Ethers.js version:', ethers.version);
+            
+            // Kontratları başlat
+            await initializeContracts();
+        });
+
+        // Kontrat adresleri
+        const CONTRACT_ADDRESSES = {
+            ELECTION: "0x4Cd08d14A03bC4F0c7a1D3Ef637de878e1A8b6a1"
+        };
+
+        // Güncellenmiş ABI
+        const ELECTION_ABI = [
+            // Events
+            "event VoterAdded(address indexed voter)",
+            "event CandidateAdded(string indexed category, address indexed candidate)",
+            "event VoteCasted(address indexed voter, string indexed category, address indexed candidate)",
+            
+            // Oy verme fonksiyonları
+            "function voteForDelegation(address delegationCandidate)",
+            "function voteForDeveloper(address developerCandidate)",
+            "function voteForDesigner(address designerCandidate)",
+            "function voteForResearcher(address researcherCandidate)",
+            
+            // Aday ekleme fonksiyonları
+            "function addDelegationCandidate(address candidate)",
+            "function addDeveloperCandidate(address candidate)",
+            "function addDesignerCandidate(address candidate)",
+            "function addResearcherCandidate(address candidate)",
+            
+            // Zaman ayarlama fonksiyonları
+            "function setStartTime(uint256 _startTime)",
+            "function setEndTime(uint256 _endTime)",
+            "function setStartCandidateApplyingTime(uint256 _startCandidateApplyingTime)",
+            "function setEndCandidateApplyingTime(uint256 _endCandidateApplyingTime)",
+            
+            // View fonksiyonları
+            "function startTime() view returns (uint256)",
+            "function endTime() view returns (uint256)",
+            "function startCandidateApplyingTime() view returns (uint256)",
+            "function endCandidateApplyingTime() view returns (uint256)",
+            
+            // Oy sonuçları
+            "function showDelegationVotes() view returns (uint16[])",
+            "function showDeveloperVotes() view returns (uint16[])",
+            "function showDesignerVotes() view returns (uint16[])",
+            "function showResearcherVotes() view returns (uint16[])",
+            
+            // Aday listeleri
+            "function delegationCandidates(uint256) view returns (address)",
+            "function developerCandidates(uint256) view returns (address)",
+            "function designerCandidates(uint256) view returns (address)",
+            "function researcherCandidates(uint256) view returns (address)",
+            
+            // Yönetici fonksiyonları
+            "function addOwner(address owner)",
+            "function addRealVoter(address voter)",
+            "function showRealVoters() view returns (address[])",
+            "function showVoters() view returns (address[])"
+        ];
+
+        let provider;
+        let signer;
+        let electionContract;
+        let currentUserAddress;
+        let voteHistory = [];
+
+        // Cüzdan bağlantı durumu
+        let isConnected = false;
+        
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    alert('Lütfen MetaMask yükleyin!');
+                    return;
+                }
+
+                // Provider'ı başlat
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                
+                // Hesapları iste
+                const accounts = await provider.send("eth_requestAccounts", []);
+                currentUserAddress = accounts[0];
+                
+                // Signer ve kontratı başlat
+                signer = provider.getSigner();
+                electionContract = new ethers.Contract(CONTRACT_ADDRESSES.ELECTION, ELECTION_ABI, signer);
+
+                // UI güncelle
+                document.getElementById('walletAddress').textContent = 
+                    `Bağlı Cüzdan: ${currentUserAddress.slice(0,6)}...${currentUserAddress.slice(-4)}`;
+                document.getElementById('connectButton').textContent = 'Bağlantı Başarılı ✅';
+
+                // Kontrat fonksiyonlarını başlat
+                await checkElectionStatus();
+                await loadCandidates();
+                await loadVoteResults();
+
+                console.log('Cüzdan bağlandı:', currentUserAddress);
+                
+            } catch (error) {
+                console.error('Bağlantı hatası:', error);
+                alert('Bağlantı hatası: ' + error.message);
+            }
+        }
+
+        // MetaMask event listeners
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', () => {
+                window.location.reload();
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                window.location.reload();
+            });
+        }
+
+        // Kontratları başlat
+        async function initializeContracts() {
+            try {
+                if (!window.ethereum) {
+                    alert('MetaMask yüklü değil!');
+                    return;
+                }
+
+                // Ethers v5 syntax
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                const accounts = await provider.send("eth_requestAccounts", []);
+                currentUserAddress = accounts[0];
+                
+                signer = provider.getSigner();
+                electionContract = new ethers.Contract(CONTRACT_ADDRESSES.ELECTION, ELECTION_ABI, signer);
+
+                // Event dinleyicisi güncellendi
+                electionContract.on("VoteCasted", (voter, category, candidate) => {
+                    if (voter.toLowerCase() === currentUserAddress.toLowerCase()) {
+                        voteHistory.unshift({
+                            category: category,
+                            candidate: CANDIDATE_NAMES[candidate] || candidate,
+                            timestamp: new Date().toLocaleTimeString()
+                        });
+                        updateVoteHistory();
+                    }
+                });
+
+                // Seçim durumunu kontrol et
+                await checkElectionStatus();
+                // Adayları yükle
+                await loadCandidates();
+                // Oy sonuçlarını yükle
+                await loadVoteResults();
+                
+            } catch (error) {
+                console.error("Kontrat başlatma hatası:", error);
+                alert('Kontrat başlatılamadı: ' + error.message);
+            }
+        }
+
+        // Seçim durumunu kontrol et
+        async function checkElectionStatus() {
+            try {
+                const currentTime = Math.floor(Date.now() / 1000);
+                const startTime = await electionContract.startTime();
+                const endTime = await electionContract.endTime();
+
+                const isActive = currentTime >= startTime && currentTime <= endTime;
+                
+                document.getElementById('electionStatus').textContent = 
+                    isActive ? '🟢 Seçim Aktif' : '🔴 Seçim Kapalı';
+                
+                // Butonları güncelle
+                updateButtonStates(isActive);
+                
+            } catch (error) {
+                console.error('Durum kontrolü hatası:', error);
+            }
+        }
+
+        // Adayları yükle
+        async function loadCandidates() {
+            try {
+                for (let category of CATEGORIES) {
+                    const candidates = [];
+                    let index = 0;
+                    
+                    while (true) {
+                        try {
+                            const candidate = await electionContract[`${category.id}Candidates`](index);
+                            candidates.push(candidate);
+                            index++;
+                        } catch (error) {
+                            break;
+                        }
+                    }
+                    
+                    // Adayları güncelle
+                    updateCandidatesList(category.id, candidates);
+                }
+            } catch (error) {
+                console.error('Aday yükleme hatası:', error);
+            }
+        }
+
+        // Oy sonuçlarını yükle
+        async function loadVoteResults() {
+            try {
+                for (let category of CATEGORIES) {
+                    const votes = await electionContract[`show${category.id.charAt(0).toUpperCase() + category.id.slice(1)}Votes`]();
+                    updateVoteResults(category.id, votes);
+                }
+            } catch (error) {
+                console.error('Oy sonuçları yükleme hatası:', error);
+            }
+        }
+
+        // Oy verme fonksiyonu
+        async function vote(category, candidateAddress) {
+            try {
+                if (!electionContract) {
+                    alert('Önce cüzdanınızı bağlayın!');
+                    return;
+                }
+
+                const isActive = await electionContract.isElectionOn();
+                if (!isActive) {
+                    alert('Seçim henüz başlamadı!');
+                    return;
+                }
+
+                setLoading(true);
+                const voteFunction = `voteFor${category.charAt(0).toUpperCase() + category.slice(1)}`;
+                const tx = await electionContract[voteFunction](candidateAddress);
+                
+                console.log("Oy işlemi gönderildi:", tx.hash);
+                await tx.wait();
+                
+                alert('Oy başarıyla verildi! 🎉');
+                
+            } catch (error) {
+                console.error('Oy verme hatası:', error);
+                alert('Oy verilemedi: ' + error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+    </script>
+</body>
+</html>
