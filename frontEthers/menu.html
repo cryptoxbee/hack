@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beetter - Menü</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            background-color: #1a2634;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        .menu-container {
+            max-width: 800px;
+            margin: 40px auto;
+        }
+
+        .menu-title {
+            font-size: 36px;
+            color: #4CAF50;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .menu-item {
+            background-color: #243447;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .menu-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .menu-item-title {
+            font-size: 24px;
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+
+        .menu-item-description {
+            color: #95a5a6;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .back-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <button class="back-button" onclick="window.location.href='index.html'">GERİ DÖN</button>
+
+    <div class="menu-container">
+        <div class="menu-title">BEETTER PLATFORMU</div>
+
+        <div class="menu-grid">
+            <div class="menu-item" onclick="window.location.href='hackpot.html'">
+                <div class="menu-item-title">HACKPOT</div>
+                <div class="menu-item-description">Token ödüllü hackathon yarışması</div>
+            </div>
+
+            <div class="menu-item" onclick="window.location.href='flip.html'">
+                <div class="menu-item-title">COIN FLIP</div>
+                <div class="menu-item-description">Yazı-tura bahis oyunu</div>
+            </div>
+
+            <div class="menu-item" onclick="window.location.href='vote-election.html'">
+                <div class="menu-item-title">SEÇIM</div>
+                <div class="menu-item-description">Komite seçimleri için oy kullanma platformu</div>
+            </div>
+
+            <div class="menu-item" onclick="window.location.href='vote.html'">
+                <div class="menu-item-title">SEÇIM TAHMİNİ</div>
+                <div class="menu-item-description">Seçim sonuçları için tahmin platformu</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

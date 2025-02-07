@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beetter Oylama</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        /* vote.html'den aynı stiller */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a2634;
+            color: white;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .committee-card {
+            background-color: #243447;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .committee-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            text-align: center;
+        }
+
+        .candidate-list {
+            margin-bottom: 20px;
+            background-color: #34495e;
+            border-radius: 5px;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .candidate-list.show {
+            max-height: 300px;
+        }
+
+        .candidate-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #2c3e50;
+            font-size: 14px;
+            color: #95a5a6;
+            cursor: pointer;
+        }
+
+        .candidate-item:last-child {
+            border-bottom: none;
+        }
+
+        .candidate-item:hover {
+            background-color: #2c3e50;
+        }
+
+        .candidate-item.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .vote-button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .vote-button:hover {
+            background-color: #45a049;
+        }
+
+        .select-button {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: #34495e;
+            border: none;
+            border-radius: 5px;
+            color: #95a5a6;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .select-button:after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .select-button.active:after {
+            content: '▲';
+        }
+
+        .winners-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: background-color 0.3s;
+        }
+
+        .winners-button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grid-container">
+        <!-- Delegasyon Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">DELEGASYON</div>
+            <button class="select-button" onclick="toggleDropdown('delegation')">Aday seçin</button>
+            <div class="candidate-list" id="delegationCandidates"></div>
+            <button class="vote-button" onclick="vote('delegation')">OY VER</button>
+        </div>
+
+        <!-- Tasarım Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">TASARIM</div>
+            <button class="select-button" onclick="toggleDropdown('designer')">Aday seçin</button>
+            <div class="candidate-list" id="designerCandidates"></div>
+            <button class="vote-button" onclick="vote('designer')">OY VER</button>
+        </div>
+
+        <!-- Geliştirme Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">GELİŞTİRME</div>
+            <button class="select-button" onclick="toggleDropdown('developer')">Aday seçin</button>
+            <div class="candidate-list" id="developerCandidates"></div>
+            <button class="vote-button" onclick="vote('developer')">OY VER</button>
+        </div>
+
+        <!-- Marketing Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">MARKETING</div>
+            <button class="select-button" onclick="toggleDropdown('marketing')">Aday seçin</button>
+            <div class="candidate-list" id="marketingCandidates"></div>
+            <button class="vote-button" onclick="vote('marketing')">OY VER</button>
+        </div>
+
+        <!-- Araştırma Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">ARAŞTIRMA</div>
+            <button class="select-button" onclick="toggleDropdown('researcher')">Aday seçin</button>
+            <div class="candidate-list" id="researcherCandidates"></div>
+            <button class="vote-button" onclick="vote('researcher')">OY VER</button>
+        </div>
+
+        <!-- Eğitim Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">EĞİTİM VE İÇERİK</div>
+            <button class="select-button" onclick="toggleDropdown('education')">Aday seçin</button>
+            <div class="candidate-list" id="educationCandidates"></div>
+            <button class="vote-button" onclick="vote('education')">OY VER</button>
+        </div>
+    </div>
+
+    <script>
+        // Kontrat adresleri
+        const ELECTION_ADDRESS = '0xE9908394488411b5958e805A1b701739F5594412';
+
+        // ABI'ler
+        const electionABI = [
+            "function getDelegationCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getDesignerCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getDeveloperCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getMarketingCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getResearcherCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getEducationCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function voteForDelegation(address candidate)",
+            "function voteForDesigner(address candidate)",
+            "function voteForDeveloper(address candidate)",
+            "function voteForMarketing(address candidate)",
+            "function voteForResearcher(address candidate)",
+            "function voteForEducation(address candidate)",
+            "function delegationVotes(address) view returns (address)",
+            "function designerVotes(address) view returns (address)",
+            "function developerVotes(address) view returns (address)",
+            "function marketingVotes(address) view returns (address)",
+            "function researcherVotes(address) view returns (address)",
+            "function educationVotes(address) view returns (address)",
+            "function endTime() view returns (uint256)",
+            "function showDelegationVotes() view returns (uint16[])",
+            "function showDesignerVotes() view returns (uint16[])",
+            "function showDeveloperVotes() view returns (uint16[])",
+            "function showMarketingVotes() view returns (uint16[])",
+            "function showResearcherVotes() view returns (uint16[])",
+            "function showEducationVotes() view returns (uint16[])"
+        ];
+
+        let provider;
+        let electionContract;
+        let selectedCandidate = null;
+
+        // MetaMask bağlantı kontrolü
+        async function checkConnection() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('Lütfen MetaMask yükleyin!');
+                return false;
+            }
+
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                if (accounts.length === 0) {
+                    alert('Lütfen MetaMask\'ta bir hesap bağlayın!');
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error('Bağlantı hatası:', error);
+                return false;
+            }
+        }
+
+        async function initializeContracts() {
+            try {
+                const isConnected = await checkConnection();
+                if (!isConnected) return;
+
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                electionContract = new ethers.Contract(ELECTION_ADDRESS, electionABI, signer);
+
+                window.ethereum.on('accountsChanged', async () => {
+                    await initializeContracts();
+                });
+
+                window.ethereum.on('chainChanged', () => {
+                    window.location.reload();
+                });
+
+                await loadCandidates();
+                await checkElectionStatus();
+                setInterval(checkElectionStatus, 2000);
+            } catch (error) {
+                console.error("Contract initialization error:", error);
+                alert('Kontratlar başlatılırken hata oluştu: ' + error.message);
+            }
+        }
+
+        function toggleDropdown(committee) {
+            const candidateList = document.getElementById(`${committee}Candidates`);
+            const selectButton = candidateList.previousElementSibling;
+
+            document.querySelectorAll('.candidate-list').forEach(list => {
+                if (list.id !== `${committee}Candidates`) {
+                    list.classList.remove('show');
+                    list.previousElementSibling.classList.remove('active');
+                }
+            });
+
+            candidateList.classList.toggle('show');
+            selectButton.classList.toggle('active');
+        }
+
+        async function loadCandidates() {
+            try {
+                const committees = {
+                    delegation: 'getDelegationCandidates',
+                    designer: 'getDesignerCandidates',
+                    developer: 'getDeveloperCandidates',
+                    marketing: 'getMarketingCandidates',
+                    researcher: 'getResearcherCandidates',
+                    education: 'getEducationCandidates'
+                };
+
+                for (const [committee, func] of Object.entries(committees)) {
+                    const candidates = await electionContract[func]();
+                    const container = document.getElementById(`${committee}Candidates`);
+                    const selectButton = container.previousElementSibling;
+                    container.innerHTML = '';
+
+                    candidates.forEach(candidate => {
+                        const div = document.createElement('div');
+                        div.className = 'candidate-item';
+                        div.innerHTML = `${candidate.name} (${candidate.candidateAddress.slice(0, 6)}...)`;
+
+                        div.onclick = () => {
+                            container.querySelectorAll('.candidate-item').forEach(item => {
+                                item.classList.remove('selected');
+                            });
+
+                            div.classList.add('selected');
+                            selectedCandidate = candidate.candidateAddress;
+                            selectButton.textContent = candidate.name;
+                            container.classList.remove('show');
+                            selectButton.classList.remove('active');
+                        };
+
+                        container.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                console.error("Adaylar yüklenirken hata:", error);
+            }
+        }
+
+        async function vote(committee) {
+            try {
+                if (!selectedCandidate) {
+                    alert('Lütfen bir aday seçin!');
+                    return;
+                }
+
+                const tx = await electionContract[`voteFor${committee.charAt(0).toUpperCase() + committee.slice(1)}`](
+                    selectedCandidate
+                );
+                await tx.wait();
+
+                alert('Oy başarıyla verildi!');
+                selectedCandidate = null;
+                await loadCandidates();
+            } catch (error) {
+                console.error('Oy verme hatası:', error);
+                alert('Oy verilirken bir hata oluştu: ' + error.message);
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.matches('.select-button') && !e.target.matches('.candidate-item')) {
+                document.querySelectorAll('.candidate-list').forEach(list => {
+                    list.classList.remove('show');
+                    list.previousElementSibling.classList.remove('active');
+                });
+            }
+        });
+
+        async function checkElectionStatus() {
+            try {
+                const endTime = await electionContract.endTime();
+                const currentTime = Math.floor(Date.now() / 1000);
+
+                if (currentTime > endTime) {
+                    let winnersButton = document.querySelector('.winners-button');
+                    if (!winnersButton) {
+                        winnersButton = document.createElement('button');
+                        winnersButton.className = 'winners-button';
+                        winnersButton.textContent = 'SEÇİM SONUÇLARI';
+                        winnersButton.onclick = () => window.location.href = 'winners.html';
+                        document.body.appendChild(winnersButton);
+                    }
+                    const voteButtons = document.querySelectorAll('.vote-button');
+                    voteButtons.forEach(button => {
+                        button.disabled = true;
+                        button.style.opacity = '0.5';
+                    });
+                } else if (winnersButton) {
+                    winnersButton.remove();
+                    const voteButtons = document.querySelectorAll('.vote-button');
+                    voteButtons.forEach(button => {
+                        button.disabled = false;
+                        button.style.opacity = '1';
+                    });
+                }
+            } catch (error) {
+                console.error("Seçim durumu kontrol edilirken hata:", error);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            initializeContracts();
+        });
+    </script>
+</body>
+
+</html>

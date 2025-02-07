@@ -1,500 +1,674 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ITU Blockchain Board Seçimleri</title>
-    
-    <!-- Yeni ethers.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
+    <title>Beetter Seçim</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-        }
-        .text-gradient {
-            background: linear-gradient(to right, #a855f7, #7c3aed);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
+            margin: 0;
             padding: 20px;
-            background: #f3f4f6;  /* Açık gri arka plan */
-            min-height: 100vh;
-        }
-        .container {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        button {
-            background: #4CAF50;
+            background-color: #1a2634;
             color: white;
-            padding: 10px 20px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .committee-card {
+            background-color: #243447;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .committee-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            text-align: center;
+        }
+
+        .candidate-list {
+            margin-bottom: 20px;
+            background-color: #34495e;
+            border-radius: 5px;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .candidate-list.show {
+            max-height: 300px;
+        }
+
+        .candidate-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #2c3e50;
+            font-size: 14px;
+            color: #95a5a6;
+            cursor: pointer;
+        }
+
+        .candidate-item:last-child {
+            border-bottom: none;
+        }
+
+        .candidate-item:hover {
+            background-color: #2c3e50;
+        }
+
+        .candidate-item.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .bet-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
             border: none;
             border-radius: 5px;
+            background-color: #34495e;
+            color: white;
+        }
+
+        .bet-button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
             cursor: pointer;
-            margin: 5px;
+            font-weight: bold;
         }
-        button:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
+
+        .bet-button:hover {
+            background-color: #45a049;
         }
-        .error {
-            color: red;
+
+        .status-badge {
+            background-color: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+
+        .status-badge.active {
+            background-color: #2ecc71;
+        }
+
+        .candidate-select {
+            width: 100%;
+            padding: 10px;
             margin: 10px 0;
-        }
-        .success {
-            color: green;
-            margin: 10px 0;
-        }
-        .max-w-content {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        /* Scrollbar stilini özelleştir */
-        .fixed::-webkit-scrollbar {
-            width: 6px;
+            border: none;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: white;
+            cursor: pointer;
+            display: none;
+            /* Başlangıçta gizli */
         }
 
-        .fixed::-webkit-scrollbar-track {
-            background: #1a1a1a;
+        .candidate-select option {
+            background-color: #34495e;
+            color: white;
+            padding: 10px;
         }
 
-        .fixed::-webkit-scrollbar-thumb {
-            background: #4a4a4a;
-            border-radius: 3px;
+        .show {
+            display: block !important;
         }
 
-        .fixed::-webkit-scrollbar-thumb:hover {
-            background: #5a5a5a;
+        .bet-container {
+            position: relative;
         }
 
-        .text-gradient-purple {
-            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .select-button {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: #34495e;
+            border: none;
+            border-radius: 5px;
+            color: #95a5a6;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .select-button:after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .select-button.active:after {
+            content: '▲';
+        }
+
+        .predictions-panel {
+            position: fixed;
+            bottom: 20px;
+            right: -250px;
+            background-color: #243447;
+            padding: 20px;
+            border-radius: 15px 0 0 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 250px;
+            color: #95a5a6;
+            transition: right 0.3s ease;
+            max-height: 80vh;
+        }
+
+        .predictions-panel.open {
+            right: 0;
+        }
+
+        .predictions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2c3e50;
+            position: relative;
+        }
+
+        .predictions-header h3 {
+            margin: 0;
+            color: #4CAF50;
+        }
+
+        .toggle-arrow {
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #243447;
+            color: #4CAF50;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px 0 0 8px;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            left: -40px;
+        }
+
+        .predictions-panel.open .toggle-arrow {
+            transform: translateY(-50%) rotate(180deg);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .predictions-content {
+            margin-top: 15px;
+            overflow-y: auto;
+            max-height: calc(80vh - 80px);
+            border-radius: 10px;
+        }
+
+        .committee-predictions {
+            margin-bottom: 20px;
+        }
+
+        .committee-title-small {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .prediction-candidate {
+            color: #95a5a6;
+            margin-bottom: 5px;
+        }
+
+        .no-predictions {
+            color: #95a5a6;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .prediction-item {
+            background-color: #2c3e50;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+        }
+
+        .global-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .global-status.open {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .global-status.closed {
+            background-color: #e74c3c;
+            color: white;
         }
     </style>
 </head>
-<body class="bg-gray-900 min-h-screen text-purple-100">
-    <div class="gradient-bg text-white py-6 mb-8">
-        <div class="container mx-auto px-4">
-            <h1 class="text-4xl font-bold text-center text-white">ITU BLOCKCHAIN BOARD SEÇİMLERİ</h1>
-            <p class="text-center mt-2 opacity-90">2025-2026 Yönetim Kurulu Seçimleri</p>
+
+<body>
+    <div class="grid-container">
+        <!-- Delegasyon Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">DELEGASYON</div>
+            <button class="select-button" onclick="toggleDropdown('delegation')">Aday seçin</button>
+            <div class="candidate-list" id="delegationCandidates"></div>
+            <input type="number" class="bet-input" id="delegationBetAmount" placeholder="Token miktarı">
+            <button class="bet-button" onclick="placeBet('delegation')">TAHMİN ET</button>
+        </div>
+
+        <!-- Tasarım Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">TASARIM</div>
+            <button class="select-button" onclick="toggleDropdown('designer')">Aday seçin</button>
+            <div class="candidate-list" id="designerCandidates"></div>
+            <input type="number" class="bet-input" id="designerBetAmount" placeholder="Token miktarı">
+            <button class="bet-button" onclick="placeBet('designer')">TAHMİN ET</button>
+        </div>
+
+        <!-- Geliştirme Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">GELİŞTİRME</div>
+            <button class="select-button" onclick="toggleDropdown('developer')">Aday seçin</button>
+            <div class="candidate-list" id="developerCandidates"></div>
+            <input type="number" class="bet-input" id="developerBetAmount" placeholder="Token miktarı">
+            <button class="bet-button" onclick="placeBet('developer')">TAHMİN ET</button>
+        </div>
+
+        <!-- Marketing Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">MARKETING</div>
+            <button class="select-button" onclick="toggleDropdown('marketing')">Aday seçin</button>
+            <div class="candidate-list" id="marketingCandidates"></div>
+            <input type="number" class="bet-input" id="marketingBetAmount" placeholder="Token miktarı">
+            <button class="bet-button" onclick="placeBet('marketing')">TAHMİN ET</button>
+        </div>
+
+        <!-- Araştırma Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">ARAŞTIRMA</div>
+            <button class="select-button" onclick="toggleDropdown('researcher')">Aday seçin</button>
+            <div class="candidate-list" id="researcherCandidates"></div>
+            <input type="number" class="bet-input" id="researcherBetAmount" placeholder="Token miktarı">
+            <button class="bet-button" onclick="placeBet('researcher')">TAHMİN ET</button>
+        </div>
+
+        <!-- Eğitim Kartı -->
+        <div class="committee-card">
+            <div class="committee-title">EĞİTİM VE İÇERİK</div>
+            <button class="select-button" onclick="toggleDropdown('education')">Aday seçin</button>
+            <div class="candidate-list" id="educationCandidates"></div>
+            <input type="number" class="bet-input" id="educationBetAmount" placeholder="Token miktarı">
+            <button class="bet-button" onclick="placeBet('education')">TAHMİN ET</button>
         </div>
     </div>
 
-    <div class="container mx-auto px-4 mb-8">
-        <div class="flex justify-center">
-            <button 
-                id="connectButton"
-                onclick="connectWallet()"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Cüzdan Bağla
-            </button>
+    <div class="predictions-panel">
+        <div class="predictions-header" onclick="togglePredictions()">
+            <span class="toggle-arrow">◀</span>
+            <h3>Tahminlerim</h3>
         </div>
-        <p id="walletAddress" class="text-center mt-2 text-gray-600"></p>
-    </div>
-
-    <div class="max-w-content px-4">
-       
-
-        <!-- Election Status -->
-        <div class="glass-effect rounded-xl p-6 mb-8 shadow-lg">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Seçim Durumu</h2>
-            <div class="flex items-center justify-between">
-                <p id="electionStatus" class="text-lg text-gray-700">Durum kontrol ediliyor...</p>
-                <button id="startElectionButton" 
-                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">
-                    Seçimi Başlat
-                </button>
-            </div>
-        </div>
-
-        <!-- Voting Section -->
-        <div class="glass-effect rounded-xl p-6 mb-8 shadow-lg">
-            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Oy Verme</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Kategori</label>
-                    <select id="categorySelect" 
-                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700">
-                        <option value="delegation">Delegasyon</option>
-                        <option value="developer">Geliştirici</option>
-                        <option value="designer">Tasarımcı</option>
-                        <option value="researcher">Araştırmacı</option>
-                        <option value="marketing">Pazarlama</option>
-                        <option value="education">Eğitim</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Aday</label>
-                    <select id="candidateSelect" 
-                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700">
-                        <option value="">Aday Seçin</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Aday listesi buraya dinamik olarak eklenecek -->
-            <div id="candidatesList" class="mt-6"></div>
-
-            <div class="text-center mt-6">
-                <button id="voteButton" 
-                    class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg transition-colors">
-                    Oy Ver
-                </button>
-                <p id="voteStatus" class="mt-4 text-lg text-gray-700"></p>
-            </div>
-        </div>
-
-        <!-- Prediction Section -->
-        <div class="glass-effect rounded-xl p-6 mb-8 shadow-lg">
-            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Seçim Tahmini</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div>
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Kategori</label>
-                    <select id="predictionCategory" 
-                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700">
-                        <option value="delegation">Delegasyon</option>
-                        <option value="developer">Geliştirici</option>
-                        <option value="designer">Tasarımcı</option>
-                        <option value="researcher">Araştırmacı</option>
-                        <option value="marketing">Pazarlama</option>
-                        <option value="education">Eğitim</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Aday</label>
-                    <select id="predictionCandidateSelect" 
-                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700">
-                        <option value="">Aday Seçin</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Bahis Miktarı (ETH)</label>
-                    <input type="number" id="predictionAmount" 
-                        class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700"
-                        placeholder="0.1" step="0.01" min="0">
-                </div>
-            </div>
-
-            <div class="text-center">
-                <button id="predictButton" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors">
-                    Tahmin Yap
-                </button>
-                <p id="predictionStatus" class="mt-4 text-lg text-gray-700"></p>
-            </div>
-        </div>
-
-        <!-- Information Section -->
-        <div class="mt-8 text-center text-gray-400">
-            <p>ITU Blockchain © 2025</p>
-            <p class="mt-2">
-                <a href="#" class="text-purple-400 hover:text-purple-300">Nasıl Oy Kullanılır?</a> | 
-                <a href="#" class="text-purple-400 hover:text-purple-300">Adaylar</a> | 
-                <a href="#" class="text-purple-400 hover:text-purple-300">SSS</a>
-            </p>
-        </div>
-    </div>
-
-    <!-- Ana içerik div'inden sonra, body kapanmadan önce -->
-
-    <div class="fixed right-0 top-0 h-full w-64 bg-gray-900 text-white p-4 overflow-y-auto">
-        <h2 class="text-xl font-bold mb-4 border-b pb-2">İşlem Geçmişi</h2>
-        
-        <!-- Oylar -->
-        <div class="mb-6">
-            <h3 class="text-lg font-semibold mb-2 text-purple-400">Verilen Oylar</h3>
-            <div id="voteHistory" class="space-y-2">
-                <!-- Oylar buraya eklenecek -->
-            </div>
-        </div>
-
-        <!-- Bahisler -->
-        <div>
-            <h3 class="text-lg font-semibold mb-2 text-green-400">Yapılan Bahisler</h3>
-            <div id="betHistory" class="space-y-2">
-                <!-- Bahisler buraya eklenecek -->
-            </div>
-        </div>
+        <div class="predictions-content" id="myPredictions"></div>
     </div>
 
     <script>
-        // Ethers'ın yüklendiğinden emin ol
-        window.addEventListener('load', async () => {
-            if (typeof ethers === 'undefined') {
-                console.error('Ethers.js yüklenemedi!');
-                alert('Ethers.js yüklenemedi! Sayfayı yenileyin veya farklı bir tarayıcı deneyin.');
-                return;
-            }
-            console.log('Ethers.js version:', ethers.version);
-            
-            // Kontratları başlat
-            await initializeContracts();
-        });
+        // Kontrat adreslerini .env'den al
+        const ELECTION_ADDRESS = '0xE9908394488411b5958e805A1b701739F5594412';
+        const ELECTION_PREDICT_ADDRESS = '0xf93f7F33c288515DD810dA59d48494CB4628e32F';
+        const TOKEN_ADDRESS = '0x84C96D49efd12BD71789576ffcF5aA8A72B8A7eb';
 
-        // Kontrat adresleri
-        const CONTRACT_ADDRESSES = {
-            ELECTION: "0x4Cd08d14A03bC4F0c7a1D3Ef637de878e1A8b6a1"
-        };
+        // ABI'leri ekle
+        const electionABI = [
+            "function getDelegationCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getDesignerCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getDeveloperCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getMarketingCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getResearcherCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getEducationCandidates() view returns (tuple(address candidateAddress, string name)[])"
+        ];
 
-        // Güncellenmiş ABI
-        const ELECTION_ABI = [
-            // Events
-            "event VoterAdded(address indexed voter)",
-            "event CandidateAdded(string indexed category, address indexed candidate)",
-            "event VoteCasted(address indexed voter, string indexed category, address indexed candidate)",
-            
-            // Oy verme fonksiyonları
-            "function voteForDelegation(address delegationCandidate)",
-            "function voteForDeveloper(address developerCandidate)",
-            "function voteForDesigner(address designerCandidate)",
-            "function voteForResearcher(address researcherCandidate)",
-            
-            // Aday ekleme fonksiyonları
-            "function addDelegationCandidate(address candidate)",
-            "function addDeveloperCandidate(address candidate)",
-            "function addDesignerCandidate(address candidate)",
-            "function addResearcherCandidate(address candidate)",
-            
-            // Zaman ayarlama fonksiyonları
-            "function setStartTime(uint256 _startTime)",
-            "function setEndTime(uint256 _endTime)",
-            "function setStartCandidateApplyingTime(uint256 _startCandidateApplyingTime)",
-            "function setEndCandidateApplyingTime(uint256 _endCandidateApplyingTime)",
-            
-            // View fonksiyonları
-            "function startTime() view returns (uint256)",
-            "function endTime() view returns (uint256)",
-            "function startCandidateApplyingTime() view returns (uint256)",
-            "function endCandidateApplyingTime() view returns (uint256)",
-            
-            // Oy sonuçları
-            "function showDelegationVotes() view returns (uint16[])",
-            "function showDeveloperVotes() view returns (uint16[])",
-            "function showDesignerVotes() view returns (uint16[])",
-            "function showResearcherVotes() view returns (uint16[])",
-            
-            // Aday listeleri
-            "function delegationCandidates(uint256) view returns (address)",
-            "function developerCandidates(uint256) view returns (address)",
-            "function designerCandidates(uint256) view returns (address)",
-            "function researcherCandidates(uint256) view returns (address)",
-            
-            // Yönetici fonksiyonları
-            "function addOwner(address owner)",
-            "function addRealVoter(address voter)",
-            "function showRealVoters() view returns (address[])",
-            "function showVoters() view returns (address[])"
+        const electionPredictABI = [
+            "function betForDelegation(address candidate, uint256 amount)",
+            "function betForDesigner(address candidate, uint256 amount)",
+            "function betForDeveloper(address candidate, uint256 amount)",
+            "function betForMarketing(address candidate, uint256 amount)",
+            "function betForResearcher(address candidate, uint256 amount)",
+            "function betForEducation(address candidate, uint256 amount)",
+            "function delegationBets(address, address) view returns (uint256)",
+            "function developerBets(address, address) view returns (uint256)",
+            "function designerBets(address, address) view returns (uint256)",
+            "function marketingBets(address, address) view returns (uint256)",
+            "function researcherBets(address, address) view returns (uint256)",
+            "function educationBets(address, address) view returns (uint256)",
+            "function isBetsClosed() view returns (bool)",
+            "function owner() view returns (address)"
+        ];
+
+        const tokenABI = [
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function allowance(address owner, address spender) view returns (uint256)"
         ];
 
         let provider;
-        let signer;
         let electionContract;
-        let currentUserAddress;
-        let voteHistory = [];
+        let electionPredictContract;
+        let tokenContract;
+        let selectedCandidate = null;
 
-        // Cüzdan bağlantı durumu
-        let isConnected = false;
-        
-        async function connectWallet() {
+        // MetaMask bağlantı kontrolü
+        async function checkConnection() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('Lütfen MetaMask yükleyin!');
+                return false;
+            }
+
             try {
-                if (!window.ethereum) {
-                    alert('Lütfen MetaMask yükleyin!');
-                    return;
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                if (accounts.length === 0) {
+                    alert('Lütfen MetaMask\'ta bir hesap bağlayın!');
+                    return false;
                 }
-
-                // Provider'ı başlat
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                
-                // Hesapları iste
-                const accounts = await provider.send("eth_requestAccounts", []);
-                currentUserAddress = accounts[0];
-                
-                // Signer ve kontratı başlat
-                signer = provider.getSigner();
-                electionContract = new ethers.Contract(CONTRACT_ADDRESSES.ELECTION, ELECTION_ABI, signer);
-
-                // UI güncelle
-                document.getElementById('walletAddress').textContent = 
-                    `Bağlı Cüzdan: ${currentUserAddress.slice(0,6)}...${currentUserAddress.slice(-4)}`;
-                document.getElementById('connectButton').textContent = 'Bağlantı Başarılı ✅';
-
-                // Kontrat fonksiyonlarını başlat
-                await checkElectionStatus();
-                await loadCandidates();
-                await loadVoteResults();
-
-                console.log('Cüzdan bağlandı:', currentUserAddress);
-                
+                return true;
             } catch (error) {
                 console.error('Bağlantı hatası:', error);
-                alert('Bağlantı hatası: ' + error.message);
+                return false;
             }
         }
 
-        // MetaMask event listeners
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', () => {
-                window.location.reload();
-            });
-
-            window.ethereum.on('chainChanged', () => {
-                window.location.reload();
-            });
-        }
-
-        // Kontratları başlat
         async function initializeContracts() {
             try {
-                if (!window.ethereum) {
-                    alert('MetaMask yüklü değil!');
-                    return;
-                }
+                const isConnected = await checkConnection();
+                if (!isConnected) return;
 
-                // Ethers v5 syntax
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                const accounts = await provider.send("eth_requestAccounts", []);
-                currentUserAddress = accounts[0];
-                
-                signer = provider.getSigner();
-                electionContract = new ethers.Contract(CONTRACT_ADDRESSES.ELECTION, ELECTION_ABI, signer);
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
 
-                // Event dinleyicisi güncellendi
-                electionContract.on("VoteCasted", (voter, category, candidate) => {
-                    if (voter.toLowerCase() === currentUserAddress.toLowerCase()) {
-                        voteHistory.unshift({
-                            category: category,
-                            candidate: CANDIDATE_NAMES[candidate] || candidate,
-                            timestamp: new Date().toLocaleTimeString()
-                        });
-                        updateVoteHistory();
-                    }
+                electionContract = new ethers.Contract(ELECTION_ADDRESS, electionABI, signer);
+                electionPredictContract = new ethers.Contract(ELECTION_PREDICT_ADDRESS, electionPredictABI, signer);
+                tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenABI, signer);
+
+                // MetaMask hesap değişikliğini dinle
+                window.ethereum.on('accountsChanged', async () => {
+                    await initializeContracts();
                 });
 
-                // Seçim durumunu kontrol et
-                await checkElectionStatus();
-                // Adayları yükle
+                // MetaMask ağ değişikliğini dinle
+                window.ethereum.on('chainChanged', () => {
+                    window.location.reload();
+                });
+
                 await loadCandidates();
-                // Oy sonuçlarını yükle
-                await loadVoteResults();
-                
+                await checkMyPredictions();
+                await checkBetStatus();
+
+                setInterval(checkMyPredictions, 2000);
+                setInterval(checkBetStatus, 2000);
+
             } catch (error) {
-                console.error("Kontrat başlatma hatası:", error);
-                alert('Kontrat başlatılamadı: ' + error.message);
+                console.error("Contract initialization error:", error);
+                alert('Kontratlar başlatılırken hata oluştu: ' + error.message);
             }
         }
 
-        // Seçim durumunu kontrol et
-        async function checkElectionStatus() {
-            try {
-                const currentTime = Math.floor(Date.now() / 1000);
-                const startTime = await electionContract.startTime();
-                const endTime = await electionContract.endTime();
+        function toggleDropdown(committee) {
+            const candidateList = document.getElementById(`${committee}Candidates`);
+            const selectButton = candidateList.previousElementSibling;
 
-                const isActive = currentTime >= startTime && currentTime <= endTime;
-                
-                document.getElementById('electionStatus').textContent = 
-                    isActive ? '🟢 Seçim Aktif' : '🔴 Seçim Kapalı';
-                
-                // Butonları güncelle
-                updateButtonStates(isActive);
-                
-            } catch (error) {
-                console.error('Durum kontrolü hatası:', error);
-            }
+            // Diğer tüm açık dropdownları kapat
+            document.querySelectorAll('.candidate-list').forEach(list => {
+                if (list.id !== `${committee}Candidates`) {
+                    list.classList.remove('show');
+                    list.previousElementSibling.classList.remove('active');
+                }
+            });
+
+            // Seçili dropdown'ı aç/kapat
+            candidateList.classList.toggle('show');
+            selectButton.classList.toggle('active');
         }
 
-        // Adayları yükle
         async function loadCandidates() {
             try {
-                for (let category of CATEGORIES) {
-                    const candidates = [];
-                    let index = 0;
-                    
-                    while (true) {
-                        try {
-                            const candidate = await electionContract[`${category.id}Candidates`](index);
-                            candidates.push(candidate);
-                            index++;
-                        } catch (error) {
-                            break;
+                const committees = {
+                    delegation: 'getDelegationCandidates',
+                    designer: 'getDesignerCandidates',
+                    developer: 'getDeveloperCandidates',
+                    marketing: 'getMarketingCandidates',
+                    researcher: 'getResearcherCandidates',
+                    education: 'getEducationCandidates'
+                };
+
+                for (const [committee, func] of Object.entries(committees)) {
+                    const candidates = await electionContract[func]();
+                    const container = document.getElementById(`${committee}Candidates`);
+                    const selectButton = container.previousElementSibling;
+                    container.innerHTML = '';
+
+                    candidates.forEach(candidate => {
+                        const div = document.createElement('div');
+                        div.className = 'candidate-item';
+                        div.innerHTML = `${candidate.name} (${candidate.candidateAddress.slice(0, 6)}...)`;
+
+                        div.onclick = () => {
+                            container.querySelectorAll('.candidate-item').forEach(item => {
+                                item.classList.remove('selected');
+                            });
+
+                            div.classList.add('selected');
+                            selectedCandidate = candidate.candidateAddress;
+                            selectButton.textContent = candidate.name;
+                            container.classList.remove('show');
+                            selectButton.classList.remove('active');
+                        };
+
+                        container.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                console.error("Adaylar yüklenirken hata:", error);
+            }
+        }
+
+        async function placeBet(committee) {
+            try {
+                if (!selectedCandidate) {
+                    alert('Lütfen bir aday seçin!');
+                    return;
+                }
+
+                const amount = document.getElementById(`${committee}BetAmount`).value;
+                if (!amount || amount <= 0) {
+                    alert('Lütfen geçerli bir miktar girin!');
+                    return;
+                }
+
+                const tokenAmount = ethers.parseEther(amount);
+                const signer = await provider.getSigner();
+                const userAddress = await signer.getAddress();
+
+                // Token onayı
+                const allowance = await tokenContract.allowance(userAddress, ELECTION_PREDICT_ADDRESS);
+                if (allowance < tokenAmount) {
+                    const approveTx = await tokenContract.approve(ELECTION_PREDICT_ADDRESS, tokenAmount);
+                    await approveTx.wait();
+                }
+
+                // Bahis işlemi
+                const tx = await electionPredictContract[`betFor${committee.charAt(0).toUpperCase() + committee.slice(1)}`](
+                    selectedCandidate,
+                    tokenAmount
+                );
+                await tx.wait();
+
+                alert('Tahmin başarıyla kaydedildi!');
+                selectedCandidate = null;
+                await loadCandidates();
+                await checkMyPredictions();
+            } catch (error) {
+                console.error('Tahmin yapma hatası:', error);
+                alert('Tahmin yapılırken bir hata oluştu: ' + error.message);
+            }
+        }
+
+        // Tahminleri kontrol eden ve gösteren fonksiyon
+        async function checkMyPredictions() {
+            try {
+                const signer = await provider.getSigner();
+                const userAddress = await signer.getAddress();
+                const predictionsDiv = document.getElementById('myPredictions');
+                const oldPredictions = predictionsDiv.innerHTML;
+
+                const committees = {
+                    delegation: 'getDelegationCandidates',
+                    designer: 'getDesignerCandidates',
+                    developer: 'getDeveloperCandidates',
+                    marketing: 'getMarketingCandidates',
+                    researcher: 'getResearcherCandidates',
+                    education: 'getEducationCandidates'
+                };
+
+                let newPredictionsHTML = '';
+                let hasAnyPrediction = false;
+
+                // Her komite için
+                for (const [committee, func] of Object.entries(committees)) {
+                    const candidates = await electionContract[func]();
+                    let hasAnyBet = false;
+                    let committeePredictions = '';
+
+                    // Her adayı kontrol et
+                    for (const candidate of candidates) {
+                        const betAmount = await electionPredictContract[`${committee}Bets`](
+                            userAddress,
+                            candidate.candidateAddress
+                        );
+
+                        // Eğer bu adaya tahmin yapılmışsa
+                        if (betAmount > 0) {
+                            hasAnyBet = true;
+                            hasAnyPrediction = true;
+                            committeePredictions += `
+                                <div class="prediction-item">
+                                    <div class="prediction-candidate">${candidate.name}</div>
+                                    <div class="prediction-amount">${ethers.formatEther(betAmount)} TOKEN</div>
+                                </div>
+                            `;
                         }
                     }
-                    
-                    // Adayları güncelle
-                    updateCandidatesList(category.id, candidates);
+
+                    // Eğer bu komitede en az bir tahmin varsa, komite başlığını ve tahminleri ekle
+                    if (hasAnyBet) {
+                        newPredictionsHTML += `
+                            <div class="committee-predictions">
+                                <div class="committee-title-small">${committee.toUpperCase()}</div>
+                                ${committeePredictions}
+                            </div>
+                        `;
+                    }
                 }
+
+                // Panel açıksa ve yeni tahminler varsa güncelle
+                const panel = document.querySelector('.predictions-panel');
+                if (panel.classList.contains('open') && (hasAnyPrediction || !oldPredictions)) {
+                    predictionsDiv.innerHTML = newPredictionsHTML || '<div class="no-predictions">Henüz tahmin yapılmamış</div>';
+                }
+
             } catch (error) {
-                console.error('Aday yükleme hatası:', error);
+                console.error("Tahminler kontrol edilirken hata:", error);
             }
         }
 
-        // Oy sonuçlarını yükle
-        async function loadVoteResults() {
+        // Sayfa dışına tıklandığında dropdown'ları kapat
+        document.addEventListener('click', (e) => {
+            if (!e.target.matches('.select-button') && !e.target.matches('.candidate-item')) {
+                document.querySelectorAll('.candidate-list').forEach(list => {
+                    list.classList.remove('show');
+                    list.previousElementSibling.classList.remove('active');
+                });
+            }
+        });
+
+        // Panel açma/kapama fonksiyonu
+        function togglePredictions() {
+            const panel = document.querySelector('.predictions-panel');
+            panel.classList.toggle('open');
+
+            // Panel açıksa tahminleri hemen güncelle
+            if (panel.classList.contains('open')) {
+                checkMyPredictions();
+            }
+        }
+
+        // Durum kontrolü için yeni fonksiyon
+        async function checkBetStatus() {
             try {
-                for (let category of CATEGORIES) {
-                    const votes = await electionContract[`show${category.id.charAt(0).toUpperCase() + category.id.slice(1)}Votes`]();
-                    updateVoteResults(category.id, votes);
+                const isClosed = await electionPredictContract.isBetsClosed();
+
+                // Global durum göstergesini güncelle
+                let statusDiv = document.querySelector('.global-status');
+                if (!statusDiv) {
+                    statusDiv = document.createElement('div');
+                    statusDiv.className = 'global-status';
+                    document.body.appendChild(statusDiv);
                 }
+
+                statusDiv.className = `global-status ${isClosed ? 'closed' : 'open'}`;
+                statusDiv.textContent = isClosed ? 'TAHMİN KAPALI' : 'TAHMİN AÇIK';
+
+                // Tüm tahmin butonlarını ve input alanlarını güncelle
+                const betButtons = document.querySelectorAll('.bet-button');
+                const betInputs = document.querySelectorAll('.bet-input');
+
+                betButtons.forEach(button => {
+                    button.disabled = isClosed;
+                    button.style.opacity = isClosed ? '0.5' : '1';
+                });
+
+                betInputs.forEach(input => {
+                    input.disabled = isClosed;
+                    input.style.opacity = isClosed ? '0.5' : '1';
+                });
             } catch (error) {
-                console.error('Oy sonuçları yükleme hatası:', error);
+                console.error("Durum kontrol edilirken hata:", error);
             }
         }
 
-        // Oy verme fonksiyonu
-        async function vote(category, candidateAddress) {
-            try {
-                if (!electionContract) {
-                    alert('Önce cüzdanınızı bağlayın!');
-                    return;
-                }
-
-                const isActive = await electionContract.isElectionOn();
-                if (!isActive) {
-                    alert('Seçim henüz başlamadı!');
-                    return;
-                }
-
-                setLoading(true);
-                const voteFunction = `voteFor${category.charAt(0).toUpperCase() + category.slice(1)}`;
-                const tx = await electionContract[voteFunction](candidateAddress);
-                
-                console.log("Oy işlemi gönderildi:", tx.hash);
-                await tx.wait();
-                
-                alert('Oy başarıyla verildi! 🎉');
-                
-            } catch (error) {
-                console.error('Oy verme hatası:', error);
-                alert('Oy verilemedi: ' + error.message);
-            } finally {
-                setLoading(false);
-            }
-        }
+        // Sayfa yüklendiğinde başlat
+        window.addEventListener('load', () => {
+            initializeContracts();
+        });
     </script>
 </body>
+
 </html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beetter Seçim Sonuçları</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a2634;
+            color: white;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .committee-card {
+            background-color: #243447;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .committee-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+
+        .winner-label {
+            font-size: 18px;
+            color: #95a5a6;
+            margin-bottom: 15px;
+        }
+
+        .winner-info {
+            background-color: #2c3e50;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .winner-name {
+            font-size: 18px;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+
+        .winner-address {
+            font-size: 14px;
+            color: #95a5a6;
+            word-break: break-all;
+        }
+
+        .vote-count {
+            font-size: 16px;
+            color: #4CAF50;
+            margin-top: 10px;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .back-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <button class="back-button" onclick="window.location.href='vote-election.html'">GERİ DÖN</button>
+    <div class="grid-container" id="winners-container">
+        <!-- Kazananlar burada gösterilecek -->
+    </div>
+
+    <script>
+        const ELECTION_ADDRESS = '0xE9908394488411b5958e805A1b701739F5594412';
+
+        const electionABI = [
+            "function getDelegationCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getDesignerCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getDeveloperCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getMarketingCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getResearcherCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function getEducationCandidates() view returns (tuple(address candidateAddress, string name)[])",
+            "function showDelegationVotes() view returns (uint16[])",
+            "function showDesignerVotes() view returns (uint16[])",
+            "function showDeveloperVotes() view returns (uint16[])",
+            "function showMarketingVotes() view returns (uint16[])",
+            "function showResearcherVotes() view returns (uint16[])",
+            "function showEducationVotes() view returns (uint16[])"
+        ];
+
+        let provider;
+        let electionContract;
+
+        async function initializeContract() {
+            try {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                electionContract = new ethers.Contract(ELECTION_ADDRESS, electionABI, signer);
+                await loadWinners();
+            } catch (error) {
+                console.error("Kontrat başlatma hatası:", error);
+            }
+        }
+
+        async function loadWinners() {
+            try {
+                document.getElementById('winners-container').style.display = 'none';
+                const committees = {
+                    delegation: { title: 'DELEGASYON', getCandidates: 'getDelegationCandidates', getVotes: 'showDelegationVotes' },
+                    designer: { title: 'TASARIM', getCandidates: 'getDesignerCandidates', getVotes: 'showDesignerVotes' },
+                    developer: { title: 'GELİŞTİRME', getCandidates: 'getDeveloperCandidates', getVotes: 'showDeveloperVotes' },
+                    marketing: { title: 'MARKETING', getCandidates: 'getMarketingCandidates', getVotes: 'showMarketingVotes' },
+                    researcher: { title: 'ARAŞTIRMA', getCandidates: 'getResearcherCandidates', getVotes: 'showResearcherVotes' },
+                    education: { title: 'EĞİTİM VE İÇERİK', getCandidates: 'getEducationCandidates', getVotes: 'showEducationVotes' }
+                };
+
+                const container = document.getElementById('winners-container');
+                container.innerHTML = '';
+
+                for (const [key, committee] of Object.entries(committees)) {
+                    try {
+                        const candidates = await electionContract[committee.getCandidates]();
+                        const votes = await electionContract[committee.getVotes]();
+
+                        // En yüksek oyu bulan
+                        let maxVotes = 0;
+                        let winnerIndex = 0;
+                        votes.forEach((vote, index) => {
+                            if (vote > maxVotes) {
+                                maxVotes = vote;
+                                winnerIndex = index;
+                            }
+                        });
+
+                        const winner = candidates[winnerIndex];
+
+                        container.innerHTML += `
+                            <div class="committee-card">
+                                <div class="committee-title">${committee.title}</div>
+                                <div class="winner-label">${committee.title} KOMİTESİ KAZANANI:</div>
+                                <div class="winner-info">
+                                    <div class="winner-name">${winner.name}</div>
+                                    <div class="winner-address">${winner.candidateAddress}</div>
+                                    <div class="vote-count">${maxVotes} OY</div>
+                                </div>
+                            </div>
+                        `;
+                    } catch (error) {
+                        console.error(`${committee.title} sonuçları yüklenirken hata:`, error);
+                    }
+                }
+
+                document.getElementById('winners-container').style.display = 'grid';
+            } catch (error) {
+                console.error("Sonuçlar yüklenirken hata:", error);
+                document.getElementById('winners-container').style.display = 'grid';
+            }
+        }
+
+        window.addEventListener('load', () => {
+            initializeContract();
+        });
+    </script>
+</body>
+
+</html>

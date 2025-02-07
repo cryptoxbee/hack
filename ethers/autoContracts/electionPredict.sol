@@ -6,16 +6,15 @@ interface IElection {
     function showDeveloperVotes() external view returns(uint16[] memory);
     function showDesignerVotes() external view returns(uint16[] memory);
     function showResearcherVotes() external view returns(uint16[] memory);
+    function showMarketingVotes() external view returns(uint16[] memory);
+    function showEducationVotes() external view returns(uint16[] memory);
     
     function delegationCandidates(uint256) external view returns(address);
     function developerCandidates(uint256) external view returns(address);
     function designerCandidates(uint256) external view returns(address);
     function researcherCandidates(uint256) external view returns(address);
-
     function marketingCandidates(uint256) external view returns(address);
     function educationCandidates(uint256) external view returns(address);
-    function showMarketingVotes() external view returns(uint16[] memory);
-    function showEducationVotes() external view returns(uint16[] memory);
 }
 
 interface IERC20 {
@@ -36,35 +35,31 @@ contract ElectionPredict {
     mapping(address => mapping(address => uint256)) public developerBets;
     mapping(address => mapping(address => uint256)) public designerBets;
     mapping(address => mapping(address => uint256)) public researcherBets;
+    mapping(address => mapping(address => uint256)) public marketingBets;
+    mapping(address => mapping(address => uint256)) public educationBets;
 
     // Her seçim için ayrı toplam bahisler
     mapping(address => uint256) public totalDelegationBets;
     mapping(address => uint256) public totalDeveloperBets;
     mapping(address => uint256) public totalDesignerBets;
     mapping(address => uint256) public totalResearcherBets;
+    mapping(address => uint256) public totalMarketingBets;
+    mapping(address => uint256) public totalEducationBets;
 
     // Bahisçileri takip etmek için diziler
     address[] public delegationBettors;
     address[] public developerBettors;
     address[] public designerBettors;
     address[] public researcherBettors;
+    address[] public marketingBettors;
+    address[] public educationBettors;
 
     // Her komite için ayrı token havuzları
     uint256 public delegationTokenPool;
     uint256 public developerTokenPool;
     uint256 public designerTokenPool;
     uint256 public researcherTokenPool;
-
-    // Marketing için mapping'ler ve diziler
-    mapping(address => mapping(address => uint256)) public marketingBets;
-    mapping(address => uint256) public totalMarketingBets;
-    address[] public marketingBettors;
     uint256 public marketingTokenPool;
-
-    // Education için mapping'ler ve diziler
-    mapping(address => mapping(address => uint256)) public educationBets;
-    mapping(address => uint256) public totalEducationBets;
-    address[] public educationBettors;
     uint256 public educationTokenPool;
 
     // Event'ler
@@ -104,49 +99,37 @@ contract ElectionPredict {
         emit BetPlaced("delegation", msg.sender, candidate, amount);
     }
 
-    function betForDeveloper(address candidate, uint256 amount) public {
+    function betForDeveloper(address candidate) public payable {
         require(!isBetsClosed, "Bets are closed");
-        require(amount > 0, "Bet amount must be greater than 0");
-        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Token transfer failed");
-        
+        require(msg.value > 0, "Bet amount must be greater than 0");
         if(developerBets[msg.sender][candidate] == 0) {
             developerBettors.push(msg.sender);
         }
-        developerBets[msg.sender][candidate] += amount;
-        totalDeveloperBets[candidate] += amount;
-        developerTokenPool += amount;
-        
-        emit BetPlaced("developer", msg.sender, candidate, amount);
+        developerBets[msg.sender][candidate] += msg.value;
+        totalDeveloperBets[candidate] += msg.value;
+        emit BetPlaced("developer", msg.sender, candidate, msg.value);
     }
 
-    function betForDesigner(address candidate, uint256 amount) public {
+    function betForDesigner(address candidate) public payable {
         require(!isBetsClosed, "Bets are closed");
-        require(amount > 0, "Bet amount must be greater than 0");
-        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Token transfer failed");
-        
+        require(msg.value > 0, "Bet amount must be greater than 0");
         if(designerBets[msg.sender][candidate] == 0) {
             designerBettors.push(msg.sender);
         }
-        designerBets[msg.sender][candidate] += amount;
-        totalDesignerBets[candidate] += amount;
-        designerTokenPool += amount;
-        
-        emit BetPlaced("designer", msg.sender, candidate, amount);
+        designerBets[msg.sender][candidate] += msg.value;
+        totalDesignerBets[candidate] += msg.value;
+        emit BetPlaced("designer", msg.sender, candidate, msg.value);
     }
 
-    function betForResearcher(address candidate, uint256 amount) public {
+    function betForResearcher(address candidate) public payable {
         require(!isBetsClosed, "Bets are closed");
-        require(amount > 0, "Bet amount must be greater than 0");
-        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Token transfer failed");
-        
+        require(msg.value > 0, "Bet amount must be greater than 0");
         if(researcherBets[msg.sender][candidate] == 0) {
             researcherBettors.push(msg.sender);
         }
-        researcherBets[msg.sender][candidate] += amount;
-        totalResearcherBets[candidate] += amount;
-        researcherTokenPool += amount;
-        
-        emit BetPlaced("researcher", msg.sender, candidate, amount);
+        researcherBets[msg.sender][candidate] += msg.value;
+        totalResearcherBets[candidate] += msg.value;
+        emit BetPlaced("researcher", msg.sender, candidate, msg.value);
     }
 
     function betForMarketing(address candidate, uint256 amount) public {
@@ -289,20 +272,6 @@ contract ElectionPredict {
                     uint256 prize = (betAmount * designerTokenPool) / totalPrize;
                     require(IERC20(tokenAddress).transfer(bettor, prize), "Token transfer failed");
                     emit PrizeDistributed("designer", winner, bettor, betAmount, prize);
-                }
-            }
-        }
-        else if(keccak256(bytes(electionType)) == keccak256(bytes("researcher"))) {
-            uint256 totalPrize = totalResearcherBets[winner];
-            require(totalPrize > 0, "No bets for winner");
-
-            for(uint256 i = 0; i < researcherBettors.length; i++) {
-                address bettor = researcherBettors[i];
-                if(researcherBets[bettor][winner] > 0) {
-                    uint256 betAmount = researcherBets[bettor][winner];
-                    uint256 prize = (betAmount * researcherTokenPool) / totalPrize;
-                    require(IERC20(tokenAddress).transfer(bettor, prize), "Token transfer failed");
-                    emit PrizeDistributed("researcher", winner, bettor, betAmount, prize);
                 }
             }
         }
