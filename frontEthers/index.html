@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beetter</title>
+    <link rel="stylesheet" href="global.css">
     <style>
         body {
             margin: 0;
@@ -14,18 +15,32 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background-color: #1a2634;
+            background: linear-gradient(135deg, #0f1923 0%, #1a2634 100%);
             font-family: Arial, sans-serif;
             color: white;
             overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('path/to/casino-pattern.png') repeat;
+            opacity: 0.05;
+            pointer-events: none;
         }
 
         .logo {
             font-size: 72px;
             font-weight: bold;
-            color: #4CAF50;
+            color: #00ff88;
             margin-bottom: 20px;
             animation: fadeInDown 1s ease-out;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
         }
 
         .tagline {
@@ -39,18 +54,22 @@
         .enter-button {
             padding: 15px 40px;
             font-size: 20px;
-            background-color: #4CAF50;
+            background: linear-gradient(45deg, #00ff88, #00b359);
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            transition: transform 0.3s, background-color 0.3s;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
             animation: pulse 2s infinite;
         }
 
         .enter-button:hover {
-            background-color: #45a049;
+            background: linear-gradient(45deg, #00b359, #00ff88);
             transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
         }
 
         @keyframes fadeInDown {

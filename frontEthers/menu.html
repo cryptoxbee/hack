@@ -5,12 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beetter - Menü</title>
+    <link rel="stylesheet" href="global.css">
     <style>
         body {
             margin: 0;
             padding: 20px;
             min-height: 100vh;
-            background-color: #1a2634;
+            background: linear-gradient(135deg, #0f1923 0%, #1a2634 100%);
             font-family: Arial, sans-serif;
             color: white;
         }
@@ -22,9 +23,10 @@
 
         .menu-title {
             font-size: 36px;
-            color: #4CAF50;
+            color: #00ff88;
             text-align: center;
             margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
         }
 
         .menu-grid {
@@ -34,24 +36,27 @@
         }
 
         .menu-item {
-            background-color: #243447;
+            background: linear-gradient(45deg, #1a2634, #243447);
             padding: 30px;
             border-radius: 15px;
             text-align: center;
             cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.1);
         }
 
         .menu-item:hover {
             transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+            border-color: rgba(0, 255, 136, 0.3);
         }
 
         .menu-item-title {
             font-size: 24px;
-            color: #4CAF50;
+            color: #00ff88;
             margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
         }
 
         .menu-item-description {

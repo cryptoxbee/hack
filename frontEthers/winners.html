@@ -6,12 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beetter Seçim Sonuçları</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="global.css">
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #1a2634;
+            background: linear-gradient(135deg, #0f1923 0%, #1a2634 100%);
             color: white;
         }
 
@@ -24,10 +25,10 @@
         }
 
         .committee-card {
-            background-color: #243447;
+            background: linear-gradient(45deg, #1a2634, #243447);
             border-radius: 15px;
             padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
             text-align: center;
             min-height: 200px;
             display: flex;
@@ -57,7 +58,8 @@
 
         .winner-name {
             font-size: 18px;
-            color: #e74c3c;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
             margin-bottom: 10px;
         }
 
@@ -69,7 +71,8 @@
 
         .vote-count {
             font-size: 16px;
-            color: #4CAF50;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
             margin-top: 10px;
         }
 
