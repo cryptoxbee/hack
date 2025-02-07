@@ -59,6 +59,9 @@ Beetter, blockchain tabanlı bir bahis ve seçim platformudur. Platform üzerind
 
 ## Kurulum
 
+- `npm install` ile gerekli paketleri yükleyin
+- `npm install -g live-server` ile live server plugin'ini yükleyin
+
 1. Repository'yi klonlayın
 2. `npm install` ile gerekli paketleri yükleyin
 3. kontratları arbitrum sepolia ağına dağıtın
@@ -69,6 +72,7 @@ Beetter, blockchain tabanlı bir bahis ve seçim platformudur. Platform üzerind
 8. index.html dosyasını açın ve live server plugin ile çalıştırın
 9. election.sol kontratlarını deployladıktan sonra aday seçim süresini ve seçim süresini belirleyin adayları remixten ekleyip seçimleri başlatın
 10. electionPredict.sol kontratını deployladıktan sonra remixten zaman predict bitim zamanında bitirebilirsiniz
+11. `npm start` ile platformu çalıştırın
 
 
 ## Hazır deploy edilmiş kontratlarınızın adresleri:
